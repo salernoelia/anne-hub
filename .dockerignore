@@ -1,0 +1,13 @@
+# Ignore the local Go build output
+/build
+/bin
+
+# Ignore version control
+.git
+.gitignore
+
+# Ignore OS-specific files
+*.DS_Store
+
+# Ignore test files
+*_test.go
