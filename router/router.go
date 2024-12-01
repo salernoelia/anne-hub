@@ -32,6 +32,7 @@ func NewRouter() *echo.Echo {
 
 	// Conversation routes
 	e.POST("/conversations", handlers.CreateConversationHandler)
+	e.POST("/transcribe", handlers.TranscribeAudio)
 
 
 	return e

@@ -57,7 +57,7 @@ func GenerateGroqLLMResponse(requestContent string, language string) (string, er
     }
 
 
-    var apiResp models.APIResponse
+    var apiResp models.GroqLLMResponse
     if err := json.Unmarshal(body, &apiResp); err != nil {
         return "", fmt.Errorf("error decoding response from Groq API: %v", err)
     }
