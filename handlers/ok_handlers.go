@@ -11,7 +11,6 @@ import (
 
 
 func OkHandler(c echo.Context) error {
-	// return c.String(http.StatusOK, "OK")
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "OK",
 	})

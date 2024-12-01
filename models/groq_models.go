@@ -8,3 +8,4 @@ type APIResponse struct {
         } `json:"message"`
     } `json:"choices"`
 }
+

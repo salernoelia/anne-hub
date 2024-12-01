@@ -4,6 +4,8 @@ import (
 	"anne-hub/router"
 	"log"
 
+	"anne-hub/pkg/db"
+
 	"github.com/joho/godotenv"
 )
 
@@ -14,8 +16,10 @@ func main() {
     }
 
 
-    // db.SetDatabase()
     e := router.NewRouter()
+
+    db.SetupDatabase()
+
 
 
     e.Logger.Fatal(e.Start("0.0.0.0:1323"))
