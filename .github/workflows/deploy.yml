@@ -28,7 +28,7 @@ jobs:
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e ANOTHER_SECRET=${{ secrets.ANOTHER_SECRET }} \
             -p 1323:1323 \
-            --name anne-hub-container \
+            --name anne-hub \
             anne-hub
 
 
