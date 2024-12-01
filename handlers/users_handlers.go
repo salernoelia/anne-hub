@@ -50,6 +50,51 @@ func GetAllUsersHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
+// get user by id parameter
+func GetUserHandler(c echo.Context) error {
+	idParam := c.Param("id") // UUID from the URL path parameter
+
+	// Validate UUID format
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid user ID format.",
+		})
+	}
+
+	var user models.User
+	var interests []string // Temp variable to handle array scanning
+
+	query := `
+		SELECT id, username, email, password_hash, created_at, age, interests
+		FROM users
+		WHERE id = $1
+	`
+	err = db.DB.QueryRow(query, userID).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.Age,
+		pq.Array(&interests), // Use pq.Array for PostgreSQL arrays
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "User not found.",
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch user: " + err.Error(),
+		})
+	}
+
+	user.Interests = interests // Assign parsed interests to the user struct
+
+	return c.JSON(http.StatusOK, user)
+}
+
 
 // CreateUserHandler creates a new user in the database
 func CreateUserHandler(c echo.Context) error {
@@ -111,7 +156,6 @@ func UpdateUserHandler(c echo.Context) error {
         })
     }
 
-    // Optional: Validate fields if necessary
 
     query := `
         UPDATE users
@@ -139,4 +183,38 @@ func UpdateUserHandler(c echo.Context) error {
     }
 
     return c.JSON(http.StatusOK, user)
+}
+
+
+// delete user endpoint
+func DeleteUserHandler(c echo.Context) error {
+	idParam := c.Param("id") // UUID from the URL path parameter
+
+	// Validate UUID format
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid user ID format.",
+		})
+	}
+
+	query := `
+		DELETE FROM users
+		WHERE id = $1
+	`
+	_, err = db.DB.Exec(query, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "User not found.",
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to delete user: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "User deleted successfully.",
+	})
 }

@@ -17,19 +17,21 @@ func NewRouter() *echo.Echo {
 
 	// Task routes
 	e.GET("/tasks", handlers.GetAllTasks)
+	e.GET("/tasks/:id", handlers.GetTaskByID)
 	e.POST("/tasks", handlers.CreateTaskHandler)
+	e.PUT("/tasks/:id", handlers.UpdateTaskHandler)
+	e.DELETE("/tasks/:id", handlers.DeleteTaskHandler)
 
 	// User routes
 	e.GET("/users", handlers.GetAllUsersHandler)          // Fetch all users
+	e.GET("/users/:id", handlers.GetUserHandler)           // Fetch a specific user by ID
 	e.POST("/users", handlers.CreateUserHandler)          // Create a new user
 	e.PUT("/users/:id", handlers.UpdateUserHandler)       // Update a specific user by ID
+	e.DELETE("/users/:id", handlers.DeleteUserHandler)    // Delete a specific user by ID
 
+	// Conversation routes
+	e.POST("/conversations", handlers.CreateConversationHandler)
 
-	// Cors middleware, in case we need it
-	// e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-	// 	AllowOrigins: []string{"*"}, // You can specify allowed origins here
-	// 	AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
-	// }))
 
 	return e
 }

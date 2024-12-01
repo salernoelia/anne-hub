@@ -13,27 +13,32 @@ import (
 
 var DB *sqlx.DB
 
-
+// SetupDatabase initializes the database connection
 func SetupDatabase() {
-    dbURL := os.Getenv("DATABASE_URL")
+	dbURL := os.Getenv("DATABASE_URL")
 
-    var dsn string
-    if dbURL != "" {
-        dsn = dbURL
-    } else {
-        dbUsername := env.GetEnvOrFatal("DB_USERNAME")
-        dbPassword := env.GetEnvOrFatal("DB_PASSWORD")
-        dbName := env.GetEnvOrFatal("DB_NAME")
-        dbSSLMode := env.GetEnvOrFatal("DB_SSLMODE", "require")
+	var dsn string
+	if dbURL != "" {
+		dsn = dbURL
+	} else {
+		dbUsername := env.GetEnvOrFatal("DB_USERNAME")
+		dbPassword := env.GetEnvOrFatal("DB_PASSWORD")
+		dbName := env.GetEnvOrFatal("DB_NAME")
+		dbSSLMode := env.GetEnvOrFatal("DB_SSLMODE", "require")
 
-        dsn = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", dbUsername, dbPassword, dbName, dbSSLMode)
-    }
+		dsn = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", dbUsername, dbPassword, dbName, dbSSLMode)
+	}
 
-    var err error
-    DB, err = sqlx.Connect("postgres", dsn)
-    if err != nil {
-        log.Fatal(err)
-    }
+	var err error
+	DB, err = sqlx.Connect("postgres", dsn)
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
 
-	fmt.Println("Database connection established.")
+	// Verify the connection
+	if err = DB.Ping(); err != nil {
+		log.Fatalf("Database ping failed: %v", err)
+	}
+
+	log.Println("Database connection established successfully.")
 }
