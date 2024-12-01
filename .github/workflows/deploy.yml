@@ -23,8 +23,12 @@ jobs:
         run: |
           sudo docker run -d \
             --restart always \
-            --env-file .env \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASS=${{ secrets.DB_PASS }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e ANOTHER_SECRET=${{ secrets.ANOTHER_SECRET }} \
             -p 1323:1323 \
             --name anne-hub-container \
             anne-hub
+
 
