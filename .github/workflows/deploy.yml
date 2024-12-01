@@ -14,12 +14,6 @@ jobs:
       - name: Build Docker Image
         run: sudo docker build -t anne-hub .
 
-      - name: Update to the latest migrations
-        run: |
-          ANNE_HUB_DB="postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}?sslmode=${{ secrets.DB_SSLMODE }}"
-          echo "Using database URL: $ANNE_HUB_DB"
-          migrate -database $ANNE_HUB_DB -path db/migrations up
-
 
       - name: Stop Existing Container
         run: |
