@@ -21,8 +21,8 @@ func SetupDatabase() {
 	} else {
 		dbHost := os.Getenv("DB_HOST")         
 		dbPort := os.Getenv("DB_PORT") 
-		dbUsername := os.Getenv("DB_USERNAME")
-		dbPassword := os.Getenv("DB_PASSWORD")
+  		dbUsername := os.Getenv("DB_USER")      // Ensure matching
+        dbPassword := os.Getenv("DB_PASS") 
 		dbName := os.Getenv("DB_NAME")
 		dbSSLMode := os.Getenv("DB_SSLMODE")
 
