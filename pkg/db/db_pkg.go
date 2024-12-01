@@ -26,14 +26,6 @@ func SetupDatabase() {
 		dbName := os.Getenv("DB_NAME")
 		dbSSLMode := os.Getenv("DB_SSLMODE")
 
-		log.Println("DB_HOST: ", dbHost)
-		log.Println("DB_PORT: ", dbPort)
-		log.Println("DB_USER: ", dbUsername)
-		log.Println("DB_PASS: ", dbPassword)
-		log.Println("DB_NAME: ", dbName)
-		log.Println("DB_SSLMODE: ", dbSSLMode)
-		
-
 		dsn = fmt.Sprintf(
 			"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 			dbHost, dbPort, dbUsername, dbPassword, dbName, dbSSLMode,
