@@ -24,8 +24,8 @@ jobs:
           sudo docker run -d \
             --restart always \
             -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
-            -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
-            -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            -e DB_USER="${{ secrets.DB_USERNAME }}" \
+            -e DB_PASS="${{ secrets.DB_PASSWORD }}" \
             -e DB_HOST="${{ secrets.DB_HOST }}" \
             -e DB_PORT="${{ secrets.DB_PORT }}" \
             -e DB_NAME="${{ secrets.DB_NAME }}" \
