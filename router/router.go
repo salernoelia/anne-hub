@@ -12,6 +12,7 @@ func NewRouter() *echo.Echo {
 
 	// General routes
 	e.GET("/", handlers.OkHandler)
+	e.GET("/gh-actions-test", handlers.GitHubActionsTestHandler)
 	e.GET("/uuid", handlers.UUIDHandler)
 
 

@@ -21,12 +21,17 @@ func SetupDatabase() {
 	if dbURL != "" {
 		dsn = dbURL
 	} else {
+		dbHost := env.GetEnvOrFatal("DB_HOST")         
+		dbPort := env.GetEnvOrFatal("DB_PORT", "5432") 
 		dbUsername := env.GetEnvOrFatal("DB_USERNAME")
 		dbPassword := env.GetEnvOrFatal("DB_PASSWORD")
 		dbName := env.GetEnvOrFatal("DB_NAME")
 		dbSSLMode := env.GetEnvOrFatal("DB_SSLMODE", "require")
 
-		dsn = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", dbUsername, dbPassword, dbName, dbSSLMode)
+		dsn = fmt.Sprintf(
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			dbHost, dbPort, dbUsername, dbPassword, dbName, dbSSLMode,
+		)
 	}
 
 	var err error

@@ -16,6 +16,13 @@ func OkHandler(c echo.Context) error {
 	})
 }
 
+func GitHubActionsTestHandler(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "GH Actions Test",
+	})
+}
+
+
 func UUIDHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"uuid": uuid.CreateUUID(),
