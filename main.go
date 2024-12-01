@@ -15,10 +15,11 @@ import (
 )
 
 func main() {
-    err := godotenv.Load() // This will load the .env file
+   err := godotenv.Load()
     if err != nil {
-        log.Fatal("Error loading .env file")
+        log.Println("No .env file found. Proceeding with environment variables.")
     }
+
 
 
     e := router.NewRouter()

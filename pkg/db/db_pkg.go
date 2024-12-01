@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 
-	"anne-hub/pkg/env"
-
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -21,12 +19,12 @@ func SetupDatabase() {
 	if dbURL != "" {
 		dsn = dbURL
 	} else {
-		dbHost := env.GetEnvOrFatal("DB_HOST")         
-		dbPort := env.GetEnvOrFatal("DB_PORT", "5432") 
-		dbUsername := env.GetEnvOrFatal("DB_USERNAME")
-		dbPassword := env.GetEnvOrFatal("DB_PASSWORD")
-		dbName := env.GetEnvOrFatal("DB_NAME")
-		dbSSLMode := env.GetEnvOrFatal("DB_SSLMODE", "require")
+		dbHost := os.Getenv("DB_HOST")         
+		dbPort := os.Getenv("DB_PORT") 
+		dbUsername := os.Getenv("DB_USERNAME")
+		dbPassword := os.Getenv("DB_PASSWORD")
+		dbName := os.Getenv("DB_NAME")
+		dbSSLMode := os.Getenv("DB_SSLMODE")
 
 		dsn = fmt.Sprintf(
 			"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
