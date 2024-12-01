@@ -1,0 +1,30 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Docker Image
+        run: sudo docker build -t anne-hub .
+
+      - name: Stop Existing Container
+        run: |
+          sudo docker stop anne-hub || true
+          sudo docker rm anne-hub || true
+
+      - name: Run Docker Container
+        run: |
+          sudo docker run -d \
+            --restart always \
+            --env-file .env \
+            -p 1323:1323 \
+            --name anne-hub-container \
+            anne-hub
+
