@@ -1,4 +1,4 @@
-# anne hub
+# anne Hub
 
 Routing and processing server for anne wear and anne companion.
 
@@ -16,7 +16,7 @@ To run:
 docker run -p 1323:1323 anne-hub
 ```
 
-# Migrations for PostgreSQL DB
+# Setup the PostgreSQL DB and Migrations
 
 Make sure you have postgres 14 installed and running.
 
@@ -50,4 +50,14 @@ Apply a migration
 
 ```sh
 migrate -database $ANNE_HUB_DB -path db/migrations up
+```
+
+# env example
+
+```env
+GROQ_API_KEY=xxxxx
+DB_USERNAME=xxxxx
+DB_NAME=anne_hub
+DB_PASSWORD=xxxxx
+DB_SSLMODE=disable
 ```
