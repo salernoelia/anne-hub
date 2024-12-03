@@ -40,5 +40,6 @@ type GroqWhisperResponse struct {
     AvgLogprob       float64 `json:"avg_logprob"`
     CompressionRatio float64 `json:"compression_ratio"`
     NoSpeechProb     float64 `json:"no_speech_prob"`
+    Transcription string `json:"transcription"`
 }
 

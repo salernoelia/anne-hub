@@ -164,10 +164,11 @@ func ConversationHandler(c echo.Context) error {
 		})
 	}
 
+	systemPrompt = buildSystemPrompt(&req)
 	if err == sql.ErrNoRows {
 		c.Logger().Info("No previous conversation found")
 		log.Println("No previous conversation found within the reset time")
-		systemPrompt = buildSystemPrompt(&req)
+		
 	} else {
 		c.Logger().Infof("Found previous conversation ID: %d", previousConversation.ID)
 		log.Printf("Previous conversation found: %+v\n", previousConversation)
@@ -175,7 +176,7 @@ func ConversationHandler(c echo.Context) error {
 		conversation.CreatedAt = previousConversation.CreatedAt
 		conversation.UserID = previousConversation.UserID
 
-		if previousConversation.ConversationHistory != nil {
+		if len(previousConversation.ConversationHistory) > 0 {
 			err = json.Unmarshal(previousConversation.ConversationHistory, &conversationData)
 			if err != nil {
 				log.Printf("Error unmarshalling ConversationHistory: %v\n", err)
@@ -234,7 +235,6 @@ func ConversationHandler(c echo.Context) error {
 	}
 	log.Printf("LLM response received: %+v\n", llmResponse)
 
-	log.Println("Validating LLM response choices")
 	if len(llmResponse.Choices) == 0 {
 		c.Logger().Warn("No choices returned from LLM response")
 		log.Println("No choices returned from LLM response")
@@ -242,7 +242,6 @@ func ConversationHandler(c echo.Context) error {
 			"error": "No choices returned from LLM response.",
 		})
 	}
-	log.Println("LLM response choices are valid")
 
 	assistantResponse := llmResponse.Choices[0].Message.Content
 	log.Printf("Assistant response extracted: %s\n", assistantResponse)
@@ -273,7 +272,7 @@ func ConversationHandler(c echo.Context) error {
 			RETURNING id, created_at;
 		`
 
-		log.Printf("Executing INSERT Query: %s with UserID: %s and ConversationHistory: %s", insertQuery, conversation.UserID, string(convoJSON))
+		log.Printf("Executing INSERT Query with UserID: %s and ConversationHistory: %s", conversation.UserID, string(convoJSON))
 
 		err = db.DB.QueryRow(insertQuery, conversation.UserID, convoJSON).
 			Scan(&conversation.ID, &conversation.CreatedAt)
@@ -301,7 +300,7 @@ func ConversationHandler(c echo.Context) error {
 			RETURNING updated_at;
 		`
 
-		log.Printf("Executing UPDATE Query: %s with ConversationHistory: %s and ID: %d", updateQuery, string(convoJSON), conversation.ID)
+		log.Printf("Executing UPDATE Query with ConversationHistory: %s and ID: %d", string(convoJSON), conversation.ID)
 
 		err = db.DB.QueryRow(updateQuery, convoJSON, conversation.ID).
 			Scan(&conversation.UpdatedAt)
@@ -316,7 +315,6 @@ func ConversationHandler(c echo.Context) error {
 	}
 
 	log.Printf("Current Conversation History: %s\n", string(convoJSON))
-
 	log.Printf("Final assistant response to send: %s\n", assistantResponse)
 	c.Logger().Info("Returning response to user")
 
@@ -327,12 +325,11 @@ func ConversationHandler(c echo.Context) error {
 
 func buildSystemPrompt(req *models.ConversationRequest) string {
 	log.Println("Building system prompt for new conversation")
-	prompt := "You are a helpful assistant. You are assisting a user (with ADHD, but you are not mentioning this) with a task they are scheduled to do."
-	prompt += " The user asks you a question. You provide a helpful response."
+	prompt := "You are the friend of Marcus. You are assisting marcus (has ADHD, but you are not mentioning this) with a task they are scheduled to do."
+	prompt += " The user asks you a question. You provide a helpful response in a way that you would talk in natural language, so it needs to be short and concise and creative."
 	prompt += " The user is 11 years old and a boy."
 	prompt += " His homework is math equations, English vocabulary; first he has to do the math equation work, try to motivate him."
-	prompt += " The user is interested in the following subjects. If it makes sense, try to combine them to create an intrinsic learning experience: "
-	prompt += "swimming, gaming on the computer."
+	prompt += " The user is interested in the following subjects. If it makes sense, try to combine them to create an intrinsic learning experience: swimming, gaming on the computer."
 	prompt += " Create interest for the user in about 30 words max."
 	log.Printf("System prompt constructed: %s\n", prompt)
 	return prompt

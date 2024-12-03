@@ -74,13 +74,14 @@ func GenerateGroqLLMResponse(userPrompt string, systemPrompt string, language st
 
 
 // GenerateGroqLLMResponse generates a response from the Groq LLM API using structured conversation data
+
+// GenerateGroqLLMResponseFromConversationData generates a response from the Groq LLM API using structured conversation data
 func GenerateGroqLLMResponseFromConversationData(conversation models.ConversationData, systemPrompt string, language string) (models.GroqLLMResponse, error) {
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
 		return models.GroqLLMResponse{}, fmt.Errorf("GROQ_API_KEY environment variable not set")
 	}
 
-	// Append language-specific instruction to system prompt
 	if language == "german" {
 		systemPrompt += " Bitte antworte auf Deutsch."
 	} else if language == "english" {
@@ -89,21 +90,14 @@ func GenerateGroqLLMResponseFromConversationData(conversation models.Conversatio
 
 	url := "https://api.groq.com/openai/v1/chat/completions"
 
-	// Construct the messages array starting with the system prompt
 	messages := []map[string]string{
 		{"role": "system", "content": systemPrompt},
 	}
 
-	// Append existing conversation messages
 	for _, msg := range conversation.Messages {
-		role := ""
-		switch msg.Sender {
-		case "user":
-			role = "user"
-		case "assistant":
+		role := "user"
+		if msg.Sender == "assistant" {
 			role = "assistant"
-		default:
-			role = "user" // Default to user if role is unrecognized
 		}
 		messages = append(messages, map[string]string{
 			"role":    role,
@@ -150,7 +144,7 @@ func GenerateGroqLLMResponseFromConversationData(conversation models.Conversatio
 		return models.GroqLLMResponse{}, fmt.Errorf("error decoding response from Groq API: %w", err)
 	}
 
-	if len(apiResp.Choices) == 0 || len(apiResp.Choices[0].Message.Content) == 0 {
+	if len(apiResp.Choices) == 0 || apiResp.Choices[0].Message.Content == "" {
 		return models.GroqLLMResponse{}, fmt.Errorf("no valid response received from Groq API")
 	}
 
