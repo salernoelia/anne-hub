@@ -1,23 +1,40 @@
+// models/models.go
+
 package models
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type CreateConversationRequest struct {
-    UserID   string `json:"user_id" validate:"required,uuid"`
-    Request  string `json:"request" validate:"required"`
-    Language string `json:"language,omitempty"`
+// Message represents a single message in the conversation history.
+type Message struct {
+	Sender    string `json:"sender"`
+	Content   string `json:"content"`
+	Timestamp string `json:"timestamp"`
 }
 
+// ConversationData holds the conversation history as a list of messages.
+type ConversationData struct {
+	Messages []Message `json:"messages"`
+}
 
+// ConversationRequest represents the incoming request for a conversation.
+type ConversationRequest struct {
+	UserID      uuid.UUID `json:"user_id"`
+	DeviceID    int       `json:"device_id"`
+	RequestPCM  []byte    `json:"request_pcm"`
+	Language    string    `json:"language,omitempty"`
+	RequestTime string    `json:"request_time"`
+}
+
+// Conversation represents a conversation record in the database.
 type Conversation struct {
-	ID             int64     `db:"id" json:"id"`
-	UserID         string    `db:"user_id" json:"user_id"`
-	ConversationID string    `db:"conversation_id" json:"conversation_id"`
-	CreatedAt      time.Time `db:"created_at" json:"created_at"`
-	Request        string    `db:"request" json:"request"`
-	Response       string    `db:"response" json:"response"`
-	ModelUsed      string    `db:"model_used,omitempty" json:"model_used,omitempty"`
-	Role           string    `db:"role,omitempty" json:"role,omitempty"`
+	ID                  int64           `db:"id" json:"id"`
+	UserID              uuid.UUID       `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time       `db:"created_at" json:"created_at"`
+	ConversationHistory json.RawMessage `db:"conversation_history" json:"conversation_history"`
+	UpdatedAt           time.Time       `db:"updated_at" json:"updated_at"`
 }

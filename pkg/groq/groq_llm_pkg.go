@@ -1,4 +1,3 @@
-// File: anne-hub/pkg/groq/groq_llm_pkg.go
 package groq
 
 import (
@@ -12,58 +11,148 @@ import (
 )
 
 // GenerateGroqLLMResponse generates a response from the Groq LLM API
-func GenerateGroqLLMResponse(requestContent string, language string) (string, error) {
-    apiKey := os.Getenv("GROQ_API_KEY")
-    if apiKey == "" {
-        return "", fmt.Errorf("GROQ_API_KEY environment variable is not set")
-    }
+func GenerateGroqLLMResponse(userPrompt string, systemPrompt string, language string) (models.GroqLLMResponse, error) {
+	apiKey := os.Getenv("GROQ_API_KEY")
+	if apiKey == "" {
+		return models.GroqLLMResponse{}, fmt.Errorf("GROQ_API_KEY environment variable not set")
+	}
 
-    if language == "german" {
-        requestContent += " Answer in German please"
-    } else if language == "english" {
-        requestContent += " Answer in English please"
-    }
+	if language == "german" {
+		userPrompt += " Answer in German please"
+	} else if language == "english" {
+		userPrompt += " Answer in English please"
+	}
 
-    url := "https://api.groq.com/openai/v1/chat/completions"
-    payload := map[string]interface{}{
-        "messages": []map[string]string{
-            {"role": "user", "content": requestContent},
-        },
-        "model": "llama-3.1-70b-versatile",
-    }
-    jsonData, err := json.Marshal(payload)
-    if err != nil {
-        return "", fmt.Errorf("error encoding request content: %v", err)
-    }
+	url := "https://api.groq.com/openai/v1/chat/completions"
+	payload := map[string]interface{}{
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": userPrompt},
+		},
+		"model": "llama-3.1-70b-versatile",
+	}
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error encoding request content: %w", err)
+	}
 
-    req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-    if err != nil {
-        return "", fmt.Errorf("error creating request: %v", err)
-    }
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error creating request: %w", err)
+	}
 
-    req.Header.Set("Authorization", "Bearer "+apiKey)
-    req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return "", fmt.Errorf("error sending request to Groq API: %v", err)
-    }
-    defer resp.Body.Close()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error sending request to Groq API: %w", err)
+	}
+	defer resp.Body.Close()
 
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return "", fmt.Errorf("error reading response body: %v", err)
-    }
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return models.GroqLLMResponse{}, fmt.Errorf("groq API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var apiResp models.GroqLLMResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error decoding response from Groq API: %w", err)
+	}
+
+	if len(apiResp.Choices) == 0 || len(apiResp.Choices[0].Message.Content) == 0 {
+		return models.GroqLLMResponse{}, fmt.Errorf("no valid response received from Groq API")
+	}
+
+	return apiResp, nil
+}
 
 
-    var apiResp models.GroqLLMResponse
-    if err := json.Unmarshal(body, &apiResp); err != nil {
-        return "", fmt.Errorf("error decoding response from Groq API: %v", err)
-    }
+// GenerateGroqLLMResponse generates a response from the Groq LLM API using structured conversation data
+func GenerateGroqLLMResponseFromConversationData(conversation models.ConversationData, systemPrompt string, language string) (models.GroqLLMResponse, error) {
+	apiKey := os.Getenv("GROQ_API_KEY")
+	if apiKey == "" {
+		return models.GroqLLMResponse{}, fmt.Errorf("GROQ_API_KEY environment variable not set")
+	}
 
-    if len(apiResp.Choices) > 0 && len(apiResp.Choices[0].Message.Content) > 0 {
-        return apiResp.Choices[0].Message.Content, nil
-    }
-    return "No sentence generated.", nil
+	// Append language-specific instruction to system prompt
+	if language == "german" {
+		systemPrompt += " Bitte antworte auf Deutsch."
+	} else if language == "english" {
+		systemPrompt += " Please respond in English."
+	}
+
+	url := "https://api.groq.com/openai/v1/chat/completions"
+
+	// Construct the messages array starting with the system prompt
+	messages := []map[string]string{
+		{"role": "system", "content": systemPrompt},
+	}
+
+	// Append existing conversation messages
+	for _, msg := range conversation.Messages {
+		role := ""
+		switch msg.Sender {
+		case "user":
+			role = "user"
+		case "assistant":
+			role = "assistant"
+		default:
+			role = "user" // Default to user if role is unrecognized
+		}
+		messages = append(messages, map[string]string{
+			"role":    role,
+			"content": msg.Content,
+		})
+	}
+
+	payload := map[string]interface{}{
+		"messages": messages,
+		"model":    "llama-3.1-70b-versatile",
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error encoding request content: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error sending request to Groq API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return models.GroqLLMResponse{}, fmt.Errorf("groq API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var apiResp models.GroqLLMResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return models.GroqLLMResponse{}, fmt.Errorf("error decoding response from Groq API: %w", err)
+	}
+
+	if len(apiResp.Choices) == 0 || len(apiResp.Choices[0].Message.Content) == 0 {
+		return models.GroqLLMResponse{}, fmt.Errorf("no valid response received from Groq API")
+	}
+
+	return apiResp, nil
 }

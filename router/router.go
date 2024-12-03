@@ -31,8 +31,10 @@ func NewRouter() *echo.Echo {
 	e.DELETE("/users/:id", handlers.DeleteUserHandler)    // Delete a specific user by ID
 
 	// Conversation routes
-	e.POST("/conversations", handlers.CreateConversationHandler)
+	e.POST("/ConversationHandler", handlers.ConversationHandler)
 	e.POST("/transcribe", handlers.TranscribeAudio)
+
+
 
 
 	return e

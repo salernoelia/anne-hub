@@ -8,3 +8,4 @@ create table conversations (
   model_used text,
   role text
 );
+

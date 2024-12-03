@@ -11,6 +11,7 @@ import (
 )
 
 func TranscribeAudio(c echo.Context) error {
+	log.Println("TranscribeAudio handler called")
     // Read the PCM data from the request body
     pcmData, err := io.ReadAll(c.Request().Body)
     if err != nil {
@@ -33,7 +34,7 @@ func TranscribeAudio(c echo.Context) error {
     log.Println("PCM data converted to WAV format")
 
     // Send the WAV data to Groq API
-    transcription, err := groq.GenerateGroqWhisperTranscription(wavData, "english")
+    transcription, err := groq.GenerateGroqWhisperTranscription(wavData, "en")
     if err != nil {
         log.Println("Failed to get transcription:", err)
         return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -41,6 +42,8 @@ func TranscribeAudio(c echo.Context) error {
         })
     }
     log.Println("Received transcription from Groq API")
+
+	log.Println("Transcription:", transcription)
 
     // Return the transcription
     log.Println("Transcription sent to client")
