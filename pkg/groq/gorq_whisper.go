@@ -21,7 +21,7 @@ curl https://api.groq.com/openai/v1/audio/transcriptions \
   -F response_format=json \
   -F language=en
 */
-func GenerateGroqWhisperTranscription(wavData []byte, language string) (string, error) {
+func GenerateWhisperTranscription(wavData []byte, language string) (string, error) {
     apiKey := os.Getenv("GROQ_API_KEY")
     if apiKey == "" {
         return "", fmt.Errorf("GROQ_API_KEY environment variable is not set")

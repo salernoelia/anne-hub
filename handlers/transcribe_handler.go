@@ -24,7 +24,7 @@ func TranscribeAudio(c echo.Context) error {
     log.Println("Received audio data of size:", len(pcmData))
 
     // Convert PCM to WAV
-    wavData, err := pcm.PCMtoWAV(pcmData)
+    wavData, err := pcm.ToWAV(pcmData)
     if err != nil {
         log.Println("Failed to convert PCM to WAV:", err)
         return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -34,7 +34,7 @@ func TranscribeAudio(c echo.Context) error {
     log.Println("PCM data converted to WAV format")
 
     // Send the WAV data to Groq API
-    transcription, err := groq.GenerateGroqWhisperTranscription(wavData, "en")
+    transcription, err := groq.GenerateWhisperTranscription(wavData, "en")
     if err != nil {
         log.Println("Failed to get transcription:", err)
         return c.JSON(http.StatusInternalServerError, map[string]string{

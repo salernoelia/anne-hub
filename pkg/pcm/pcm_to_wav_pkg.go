@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 )
 
-func PCMtoWAV(pcmData []byte) ([]byte, error) {
+func ToWAV(pcmData []byte) ([]byte, error) {
     var wavData bytes.Buffer
 
     // WAV file parameters

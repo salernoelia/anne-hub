@@ -7,6 +7,7 @@ import (
 	"anne-hub/pkg/db"
 	"anne-hub/pkg/groq"
 	"anne-hub/pkg/pcm"
+	"anne-hub/pkg/systemprompt"
 	"database/sql"
 	"encoding/json"
 	"io"
@@ -164,7 +165,7 @@ func ConversationHandler(c echo.Context) error {
 		})
 	}
 
-	systemPrompt = buildSystemPrompt(&req)
+	systemPrompt = systemprompt.DynamicBuild(req.UserID)
 	if err == sql.ErrNoRows {
 		c.Logger().Info("No previous conversation found")
 		log.Println("No previous conversation found within the reset time")
@@ -195,7 +196,7 @@ func ConversationHandler(c echo.Context) error {
 	log.Printf("Audio data size: %d bytes", len(pcmData))
 
 	log.Println("Converting PCM data to WAV format")
-	wavData, err := pcm.PCMtoWAV(pcmData)
+	wavData, err := pcm.ToWAV(pcmData)
 	if err != nil {
 		log.Printf("Failed to convert PCM to WAV: %v\n", err)
 		c.Logger().Errorf("Failed to convert PCM to WAV: %v", err)
@@ -206,7 +207,7 @@ func ConversationHandler(c echo.Context) error {
 	log.Println("PCM data successfully converted to WAV format")
 
 	log.Println("Generating transcription using Groq API")
-	transcription, err := groq.GenerateGroqWhisperTranscription(wavData, req.Language)
+	transcription, err := groq.GenerateWhisperTranscription(wavData, req.Language)
 	if err != nil {
 		log.Printf("Failed to get transcription: %v\n", err)
 		c.Logger().Errorf("Failed to get transcription: %v", err)
@@ -225,7 +226,7 @@ func ConversationHandler(c echo.Context) error {
 	log.Printf("Appended user message to conversation history: %+v\n", newMessage)
 
 	log.Println("Generating LLM response using Groq API")
-	llmResponse, err := groq.GenerateGroqLLMResponseFromConversationData(conversationData, systemPrompt, req.Language)
+	llmResponse, err := groq.GenerateLLMResponseFromConversationData(conversationData, systemPrompt, req.Language)
 	if err != nil {
 		c.Logger().Errorf("Error generating LLM response: %v", err)
 		log.Printf("Error generating LLM response: %v\n", err)
@@ -262,7 +263,6 @@ func ConversationHandler(c echo.Context) error {
 			"error": "Failed to process conversation history.",
 		})
 	}
-	conversation.ConversationHistory = convoJSON
 
 	if conversation.ID == 0 {
 		log.Println("Inserting new conversation into the database")
@@ -321,16 +321,4 @@ func ConversationHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"transcription": assistantResponse,
 	})
-}
-
-func buildSystemPrompt(req *models.ConversationRequest) string {
-	log.Println("Building system prompt for new conversation")
-	prompt := "You are the friend of Marcus. You are assisting marcus (has ADHD, but you are not mentioning this) with a task they are scheduled to do."
-	prompt += " The user asks you a question. You provide a helpful response in a way that you would talk in natural language, so it needs to be short and concise and creative."
-	prompt += " The user is 11 years old and a boy."
-	prompt += " His homework is math equations, English vocabulary; first he has to do the math equation work, try to motivate him."
-	prompt += " The user is interested in the following subjects. If it makes sense, try to combine them to create an intrinsic learning experience: swimming, gaming on the computer."
-	prompt += " Create interest for the user in about 30 words max."
-	log.Printf("System prompt constructed: %s\n", prompt)
-	return prompt
 }

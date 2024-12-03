@@ -11,7 +11,7 @@ import (
 )
 
 // GenerateGroqLLMResponse generates a response from the Groq LLM API
-func GenerateGroqLLMResponse(userPrompt string, systemPrompt string, language string) (models.GroqLLMResponse, error) {
+func GenerateLLMResponse(userPrompt string, systemPrompt string, language string) (models.GroqLLMResponse, error) {
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
 		return models.GroqLLMResponse{}, fmt.Errorf("GROQ_API_KEY environment variable not set")
@@ -76,7 +76,7 @@ func GenerateGroqLLMResponse(userPrompt string, systemPrompt string, language st
 // GenerateGroqLLMResponse generates a response from the Groq LLM API using structured conversation data
 
 // GenerateGroqLLMResponseFromConversationData generates a response from the Groq LLM API using structured conversation data
-func GenerateGroqLLMResponseFromConversationData(conversation models.ConversationData, systemPrompt string, language string) (models.GroqLLMResponse, error) {
+func GenerateLLMResponseFromConversationData(conversation models.ConversationData, systemPrompt string, language string) (models.GroqLLMResponse, error) {
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
 		return models.GroqLLMResponse{}, fmt.Errorf("GROQ_API_KEY environment variable not set")
