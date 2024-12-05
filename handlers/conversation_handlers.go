@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -55,6 +56,24 @@ func ConversationHandler(c echo.Context) error {
 		}
 		log.Printf("Received PCM data of size: %d bytes", len(pcmData))
 
+		if len(pcmData) == 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "Empty PCM data.",
+			})
+		}
+
+		// write it in a file
+		f, err := os.Create("pcmdata.pcm")
+		if err != nil {
+			log.Println("Error creating file")
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "Failed to create file.",
+			})
+		}
+
+		defer f.Close()
+
+
 		log.Println("Logging all received headers:")
 		for name, values := range c.Request().Header {
 			for _, value := range values {
@@ -66,7 +85,7 @@ func ConversationHandler(c echo.Context) error {
 		deviceIDStr := c.Request().Header.Get("X-Device-ID")
 		language := c.Request().Header.Get("X-Language")
 
-		if userIDStr == "" || deviceIDStr == "" {
+		if userIDStr == "" || deviceIDStr == "" || language == "" {
 			c.Logger().Warn("Missing required headers for raw PCM data")
 			log.Println("Missing required headers: X-User-ID, X-Device-ID")
 			return c.JSON(http.StatusBadRequest, map[string]string{
@@ -194,6 +213,19 @@ func ConversationHandler(c echo.Context) error {
 		})
 	}
 	log.Println("PCM data successfully converted to WAV format")
+
+
+	// write it in a file
+	f, err := os.Create("pcmdatatowav.wav")
+	if err != nil {
+		log.Println("Error creating file")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create file.",
+		})
+	}
+
+	defer f.Close()
+
 
 	log.Println("Generating transcription using Groq API")
 	transcription, err := groq.GenerateWhisperTranscription(wavData, req.Language)
