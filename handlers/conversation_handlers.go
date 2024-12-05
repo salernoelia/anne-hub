@@ -65,13 +65,12 @@ func ConversationHandler(c echo.Context) error {
 		userIDStr := c.Request().Header.Get("X-User-ID")
 		deviceIDStr := c.Request().Header.Get("X-Device-ID")
 		language := c.Request().Header.Get("X-Language")
-		requestTime := c.Request().Header.Get("X-Request-Time")
 
-		if userIDStr == "" || deviceIDStr == "" || requestTime == "" {
+		if userIDStr == "" || deviceIDStr == "" {
 			c.Logger().Warn("Missing required headers for raw PCM data")
-			log.Println("Missing required headers: X-User-ID, X-Device-ID, X-Request-Time")
+			log.Println("Missing required headers: X-User-ID, X-Device-ID")
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "Missing required headers: X-User-ID, X-Device-ID, X-Request-Time",
+				"error": "Missing required headers: X-User-ID, X-Device-ID",
 			})
 		}
 
@@ -98,7 +97,6 @@ func ConversationHandler(c echo.Context) error {
 			DeviceID:    deviceID,
 			RequestPCM:  pcmData,
 			Language:    language,
-			RequestTime: requestTime,
 		}
 
 		log.Println("Constructed ConversationRequest from raw PCM data and headers")
@@ -121,15 +119,6 @@ func ConversationHandler(c echo.Context) error {
 	}
 	log.Println("RequestPCM length is valid")
 
-	log.Printf("Validating RequestTime: '%s'", req.RequestTime)
-	if req.RequestTime == "" {
-		c.Logger().Warn("RequestTime field is missing")
-		log.Println("RequestTime field is required but missing")
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "RequestTime field is required.",
-		})
-	}
-	log.Println("RequestTime field is present")
 
 	var (
 		previousConversation models.Conversation
@@ -165,7 +154,7 @@ func ConversationHandler(c echo.Context) error {
 		})
 	}
 
-	systemPrompt = systemprompt.DynamicBuild(req.UserID)
+	systemPrompt = systemprompt.DynamicGeneration(req.UserID)
 	if err == sql.ErrNoRows {
 		c.Logger().Info("No previous conversation found")
 		log.Println("No previous conversation found within the reset time")
