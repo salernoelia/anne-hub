@@ -6,7 +6,7 @@ import (
 )
 
 
-func DynamicBuild(req *models.ConversationRequest) string {
+func DynamicBuild(req *models.AnneWearConversationRequest) string {
 	log.Println("Building system prompt for new conversation")
 	prompt := "You are the friend of Marcus. You are assisting marcus (has ADHD, but you are not mentioning this) with a task they are scheduled to do."
 	prompt += " The user asks you a question. You provide a helpful response in a way that you would talk in natural language, so it needs to be short and concise and creative."

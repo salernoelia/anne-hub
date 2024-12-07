@@ -10,6 +10,7 @@ import (
 	"anne-hub/pkg/systemprompt"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -28,7 +29,7 @@ func ConversationHandler(c echo.Context) error {
 	log.Println("Entered ConversationHandler")
 	c.Logger().Info("Starting ConversationHandler")
 
-	var req models.ConversationRequest
+	var req models.AnneWearConversationRequest
 	contentType := c.Request().Header.Get("Content-Type")
 	log.Printf("Content-Type: %s", contentType)
 
@@ -41,7 +42,7 @@ func ConversationHandler(c echo.Context) error {
 				"error": "Invalid request payload.",
 			})
 		}
-		log.Println("Successfully bound request to ConversationRequest model")
+		log.Println("Successfully bound request to AnneWearConversationRequest model")
 		c.Logger().Infof("Request bound: %+v", req)
 	} else if contentType == "application/octet-stream" {
 		log.Println("Processing raw PCM data")
@@ -111,14 +112,14 @@ func ConversationHandler(c echo.Context) error {
 			})
 		}
 
-		req = models.ConversationRequest{
+		req = models.AnneWearConversationRequest{
 			UserID:      userID,
 			DeviceID:    deviceID,
 			RequestPCM:  pcmData,
 			Language:    language,
 		}
 
-		log.Println("Constructed ConversationRequest from raw PCM data and headers")
+		log.Println("Constructed AnneWearConversationRequest from raw PCM data and headers")
 		c.Logger().Infof("Request constructed: %+v", req)
 	} else {
 		c.Logger().Warnf("Unsupported Content-Type: %s", contentType)
@@ -215,17 +216,15 @@ func ConversationHandler(c echo.Context) error {
 	log.Println("PCM data successfully converted to WAV format")
 
 
-	// write it in a file
-	f, err := os.Create("pcmdatatowav.wav")
+	// write it in a wav file using saveTpWAVFile
+	err = saveTpWAVFile("recording.wav", wavData)
 	if err != nil {
-		log.Println("Error creating file")
+		log.Println("Error saving WAV file")
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to create file.",
+			"error": "Failed to save WAV file.",
 		})
 	}
-
-	defer f.Close()
-
+	
 
 	log.Println("Generating transcription using Groq API")
 	transcription, err := groq.GenerateWhisperTranscription(wavData, req.Language)
@@ -342,4 +341,22 @@ func ConversationHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"transcription": assistantResponse,
 	})
+}
+
+// saveWAVFile saves the WAV data to the filesystem with the given filename.
+func saveTpWAVFile(filename string, data []byte) error {
+    // Create or truncate the file
+    file, err := os.Create(filename)
+    if err != nil {
+        return fmt.Errorf("failed to create file %s: %w", filename, err)
+    }
+    defer file.Close()
+
+    // Write WAV data to the file
+    _, err = file.Write(data)
+    if err != nil {
+        return fmt.Errorf("failed to write data to file %s: %w", filename, err)
+    }
+
+    return nil
 }

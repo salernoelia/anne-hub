@@ -21,8 +21,8 @@ type ConversationData struct {
 	Messages []Message `json:"messages"`
 }
 
-// ConversationRequest represents the incoming request for a conversation.
-type ConversationRequest struct {
+// AnneWearConversationRequest represents the incoming request for a conversation.
+type AnneWearConversationRequest struct {
 	UserID      uuid.UUID `json:"user_id"`
 	DeviceID    int       `json:"device_id"`
 	RequestPCM  []byte    `json:"request_pcm"`
