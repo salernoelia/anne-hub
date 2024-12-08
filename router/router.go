@@ -34,7 +34,7 @@ func NewRouter() *echo.Echo {
 	e.POST("/ConversationHandler", handlers.ConversationHandler)
 	e.POST("/transcribe", handlers.TranscribeAudio)
 
-    e.GET("/ws", handlers.WebSocketHandler)
+    e.GET("/ws", handlers.WebSocketConversationHandler)
 
 
 	return e
