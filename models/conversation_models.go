@@ -16,8 +16,8 @@ type Message struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// ConversationData holds the conversation history as a list of messages.
-type ConversationData struct {
+// ConversationHistory holds the conversation history as a list of messages.
+type ConversationHistory struct {
 	Messages []Message `json:"messages"`
 }
 

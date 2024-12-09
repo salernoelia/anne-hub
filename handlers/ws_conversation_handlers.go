@@ -2,28 +2,24 @@
 package handlers
 
 import (
-	"anne-hub/pkg/pcm"
+	"anne-hub/models"
+	"anne-hub/pkg/groq"
+	"anne-hub/pkg/systemprompt"
+	"anne-hub/services"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 )
 
-// Define a struct to represent the custom headers
-type CustomHeaders struct {
-    XUserID    string `json:"X-User-ID"`
-    XDeviceID  string `json:"X-Device-ID"`
-    XLanguage  string `json:"X-Language"`
-}
-
 // Upgrader configures the WebSocket upgrade parameters.
 var wsUpgrader = websocket.Upgrader{
     CheckOrigin: func(r *http.Request) bool { return true }, // Allow all origins; adjust as needed for security
 }
+
 
 // WebSocketConversationHandler handles WebSocket connections for PCM data collection.
 func WebSocketConversationHandler(c echo.Context) error {
@@ -36,7 +32,7 @@ func WebSocketConversationHandler(c echo.Context) error {
     defer conn.Close()
 
     // Initialize variables to store headers and PCM data
-    var headers CustomHeaders
+    var headers models.WSRequestHeaders
     var pcmData []byte // Buffer to accumulate PCM data
 
     // Set a flag to check if headers have been received
@@ -78,35 +74,84 @@ func WebSocketConversationHandler(c echo.Context) error {
 
             // Handle control messages like "EOS"
             if msg == "EOS" { // Define "EOS" as the end-of-stream message
-                if len(pcmData) == 0 {
-                    log.Println("No PCM data received before EOS.")
-                    conn.WriteMessage(websocket.TextMessage, []byte("No PCM data received."))
-                    continue
-                }
-
-                log.Printf("Total PCM data size: %d bytes", len(pcmData))
-
-                // Convert the accumulated PCM data to WAV format
-                wavBytes, err := pcm.ToWAV(pcmData)
+              
+                req, err := services.HandleProcessConversationInput(pcmData, headers)
                 if err != nil {
-                    log.Printf("Error converting PCM to WAV: %v", err)
-                    conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Conversion error: %v", err)))
+                    log.Printf("Error processing conversation: %v", err)
+                    conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Processing error: %s", err.Error())))
                     break
                 }
 
-                // Generate a unique filename using the current timestamp
-                filename := fmt.Sprintf("recording_%d", time.Now().Unix())
-                err = saveWAVFile(filename+".wav", wavBytes)
+
+                // Handle audio conversion
+                wavData, err := processPCMData(req.RequestPCM)
                 if err != nil {
-                    log.Printf("Error saving WAV file: %v", err)
-                    conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("File saving error: %v", err)))
-                    break
+                    return err
+                }
+                // Generate transcription
+                transcription, err := groq.GenerateWhisperTranscription(wavData, req.Language)
+                if err != nil {
+                    log.Printf("Failed to get transcription: %v\n", err)
+                    return c.JSON(http.StatusInternalServerError, map[string]string{
+                        "error": "Failed to get transcription: " + err.Error(),
+                    })
+                }
+                log.Printf("Transcription received: %s\n", transcription)
+
+                // Fetch previous conversation  
+                lastConversation, conversationHistory, err := services.GetPreviousConversation(req.UserID, 15)
+                if err != nil {
+                    log.Printf("Failed to query conversation: %v\n", err)
+                    break;
                 }
 
-                err = saveRawPCMFile(filename+".pcm", pcmData)
+                log.Printf("Last conversation: %v\n", lastConversation)
+                log.Printf("Conversation history: %v\n", conversationHistory)
+
+                systemPrompt := systemprompt.DynamicGeneration(req.UserID)
+
+                // Append user message to conversation history
+	            services.AppendMessageToConversationHistory(&conversationHistory, "user", transcription)
+
+                // Generate LLM response
+                llmResponse, err := groq.GenerateLLMResponseFromConversationData(conversationHistory, systemPrompt, req.Language)
                 if err != nil {
-                    log.Printf("Error saving raw PCM file: %v", err)
+                    log.Printf("Error generating LLM response: %v\n", err)
+                    break;
                 }
+
+                if len(llmResponse.Choices) == 0 {
+                    log.Println("No choices returned from LLM response")
+                    break;
+                }
+
+                assistantResponse := llmResponse.Choices[0].Message.Content
+                log.Printf("Assistant response extracted: %s\n", assistantResponse)
+
+                // Append assistant message to conversation history
+                services.AppendMessageToConversationHistory(&conversationHistory, "assistant", assistantResponse)
+
+                // Marshal conversation history
+                convoJSON, err := json.Marshal(conversationHistory)
+                if err != nil {
+                    log.Printf("Error marshalling ConversationHistory: %v\n", err)
+                    break;
+                }
+
+                // Insert or update conversation in the database
+                if lastConversation == nil {
+                    if err := services.InsertNewConversation(req.UserID, convoJSON); err != nil {
+                        return err
+                    }
+                } else {
+                    if err := services.UpdateExistingConversation(lastConversation.ID, convoJSON); err != nil {
+                        return err
+                    }
+                }
+                log.Printf("Final assistant response to send: %s\n", assistantResponse)
+
+
+
 
                 fmt.Println("Sending WAV file to client")
                 //send ws message to client with pcm data
@@ -119,8 +164,9 @@ func WebSocketConversationHandler(c echo.Context) error {
                     log.Printf("Error sending PCM data: %v\n", err)
                 }
 
-                log.Printf("WAV file saved successfully as %s", filename)
-                conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("WAV file saved as %s", filename)))
+
+
+                // conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("WAV file saved")))
 
                 // Optionally, reset the PCM data buffer to allow for new recordings
                 pcmData = nil

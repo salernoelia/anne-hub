@@ -76,7 +76,7 @@ func GenerateLLMResponse(userPrompt string, systemPrompt string, language string
 // GenerateGroqLLMResponse generates a response from the Groq LLM API using structured conversation data
 
 // GenerateGroqLLMResponseFromConversationData generates a response from the Groq LLM API using structured conversation data
-func GenerateLLMResponseFromConversationData(conversation models.ConversationData, systemPrompt string, language string) (models.GroqLLMResponse, error) {
+func GenerateLLMResponseFromConversationData(conversation models.ConversationHistory, systemPrompt string, language string) (models.GroqLLMResponse, error) {
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
 		return models.GroqLLMResponse{}, fmt.Errorf("GROQ_API_KEY environment variable not set")

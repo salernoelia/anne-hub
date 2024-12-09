@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
+	"anne-hub/pkg/fs"
 	"anne-hub/pkg/pcm" // Replace with your actual module path
 
 	"github.com/gorilla/websocket"
@@ -73,14 +73,14 @@ func WebSocketHandler(c echo.Context) error {
 
                 // Generate a unique filename using the current timestamp
                 filename := fmt.Sprintf("recording_%d", time.Now().Unix())
-                err = saveWAVFile(filename + ".wav", wavBytes)
+                err = fs.WriteWAVDataToFile(filename + ".wav", wavBytes)
                 if err != nil {
                     log.Printf("Error saving WAV file: %v", err)
                     conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("File saving error: %v", err)))
                     break
                 }
 
-				err = saveRawPCMFile(filename + ".pcm", pcmData)
+				err = fs.WritePCMDataToFile(filename + ".pcm", pcmData)
 				if err != nil {
 					log.Printf("Error saving raw PCM file: %v", err)
 				}
@@ -105,35 +105,3 @@ func WebSocketHandler(c echo.Context) error {
     return nil
 }
 
-// saveWAVFile saves the WAV data to the filesystem with the given filename.
-func saveWAVFile(filename string, data []byte) error {
-    // Create or truncate the file
-    file, err := os.Create(filename)
-    if err != nil {
-        return fmt.Errorf("failed to create file %s: %w", filename, err)
-    }
-    defer file.Close()
-
-    // Write WAV data to the file
-    _, err = file.Write(data)
-    if err != nil {
-        return fmt.Errorf("failed to write data to file %s: %w", filename, err)
-    }
-
-    return nil
-}
-
-func saveRawPCMFile(filename string, data []byte) error {
-    file, err := os.Create(filename)
-    if err != nil {
-        return fmt.Errorf("failed to create file %s: %w", filename, err)
-    }
-    defer file.Close()
-
-    _, err = file.Write(data)
-    if err != nil {
-        return fmt.Errorf("failed to write PCM data to file %s: %w", filename, err)
-    }
-
-    return nil
-}
