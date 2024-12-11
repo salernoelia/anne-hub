@@ -6,49 +6,68 @@ import (
 	"database/sql"
 	"net/http"
 
+	"anne-hub/services"
+
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/lib/pq"
 )
 
-// GetAllUsersHandler retrieves all users from the database
+// GetAllUsersHandler retrieves all users along with their interests from the database
 func GetAllUsersHandler(c echo.Context) error {
-	var users []models.User
+    var users []models.UserData
 
-	query := "SELECT id, username, email, password_hash, created_at, age, interests FROM users"
+    query := "SELECT id, username, email, password_hash, created_at, age, country, city, first_name, last_name FROM users"
 
-	rows, err := db.DB.Query(query)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to fetch users: " + err.Error(),
-		})
-	}
-	defer rows.Close()
+    rows, err := db.DB.Query(query)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, map[string]string{
+            "error": "Failed to fetch users: " + err.Error(),
+        })
+    }
+    defer rows.Close()
 
-	for rows.Next() {
-		var user models.User
-		var interests []string // Temp variable to handle array scanning
+    for rows.Next() {
+        var user models.User
 
-		err := rows.Scan(
-			&user.ID,
-			&user.Username,
-			&user.Email,
-			&user.PasswordHash,
-			&user.CreatedAt,
-			&user.Age,
-			pq.Array(&interests), // Use pq.Array for PostgreSQL arrays
-		)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "Failed to parse user data: " + err.Error(),
-			})
-		}
-		user.Interests = interests // Assign parsed interests to the user struct
-		users = append(users, user)
-	}
+        err := rows.Scan(
+            &user.ID,
+            &user.Username,
+            &user.Email,
+            &user.PasswordHash,
+            &user.CreatedAt,
+            &user.Age,
+            &user.Country,
+            &user.City,
+            &user.FirstName,
+            &user.LastName,
+        )
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, map[string]string{
+                "error": "Failed to parse user data: " + err.Error(),
+            })
+        }
 
-	return c.JSON(http.StatusOK, users)
+        // Fetch interests for the current user
+        userData, err := services.FetchUserData(user.ID)
+        if err != nil {
+            // Log the error and skip adding interests
+            // Alternatively, you can return an error response
+            // depending on your application's requirements
+            continue
+        }
+
+        users = append(users, userData)
+    }
+
+    if err = rows.Err(); err != nil {
+        return c.JSON(http.StatusInternalServerError, map[string]string{
+            "error": "Error iterating over users: " + err.Error(),
+        })
+    }
+
+    return c.JSON(http.StatusOK, users)
 }
+
 
 // get user by id parameter
 func GetUserHandler(c echo.Context) error {
@@ -63,10 +82,9 @@ func GetUserHandler(c echo.Context) error {
 	}
 
 	var user models.User
-	var interests []string // Temp variable to handle array scanning
 
 	query := `
-		SELECT id, username, email, password_hash, created_at, age, interests
+		SELECT id, username, email, password_hash, created_at, age
 		FROM users
 		WHERE id = $1
 	`
@@ -77,7 +95,6 @@ func GetUserHandler(c echo.Context) error {
 		&user.PasswordHash,
 		&user.CreatedAt,
 		&user.Age,
-		pq.Array(&interests), // Use pq.Array for PostgreSQL arrays
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -90,7 +107,6 @@ func GetUserHandler(c echo.Context) error {
 		})
 	}
 
-	user.Interests = interests // Assign parsed interests to the user struct
 
 	return c.JSON(http.StatusOK, user)
 }
@@ -122,8 +138,7 @@ func CreateUserHandler(c echo.Context) error {
         user.Username,
         user.Email,
         user.PasswordHash,
-        user.Age,
-        pq.Array(user.Interests), // Use pq.Array for PostgreSQL arrays
+        user.Age, 
     ).Scan(&user.ID, &user.CreatedAt)
     if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -159,7 +174,7 @@ func UpdateUserHandler(c echo.Context) error {
 
     query := `
         UPDATE users
-        SET username = $1, email = $2, password_hash = $3, age = $4, interests = $5
+        SET username = $1, email = $2, password_hash = $3, age = $4
         WHERE id = $6
         RETURNING id, created_at
     `
@@ -168,7 +183,6 @@ func UpdateUserHandler(c echo.Context) error {
         user.Email,
         user.PasswordHash,
         user.Age,
-        pq.Array(user.Interests), // Use pq.Array for PostgreSQL arrays
         userID,
     ).Scan(&user.ID, &user.CreatedAt)
     if err != nil {
@@ -218,3 +232,5 @@ func DeleteUserHandler(c echo.Context) error {
 		"message": "User deleted successfully.",
 	})
 }
+
+

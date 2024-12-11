@@ -16,4 +16,3 @@ type Task struct {
     CreatedAt     time.Time `json:"created_at" db:"created_at"`
     InterestLinks []string  `json:"interest_links,omitempty" db:"interest_links"` // Array of text
 }
-
