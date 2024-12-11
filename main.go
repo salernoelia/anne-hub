@@ -22,7 +22,10 @@ func main() {
 
 
 
+
     e := router.NewRouter()
+
+    e.Static("/files", "./static")
 
     db.SetupDatabase()
 

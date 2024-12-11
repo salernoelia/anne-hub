@@ -11,7 +11,7 @@ func NewRouter() *echo.Echo {
 
 
 	// General routes
-	e.GET("/", handlers.OkHandler)
+	e.GET("/ok", handlers.OkHandler)
 	e.GET("/gh-actions-test", handlers.GitHubActionsTestHandler)
 	e.GET("/uuid", handlers.UUIDHandler)
 
@@ -34,6 +34,7 @@ func NewRouter() *echo.Echo {
 	e.POST("/ConversationHandler", handlers.ConversationHandler)
 	e.POST("/transcribe", handlers.TranscribeAudio)
 
+    // e.GET("/ws", handlers.WebSocketTestHandler)
     e.GET("/ws", handlers.WebSocketConversationHandler)
 
 

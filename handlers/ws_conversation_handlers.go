@@ -5,11 +5,17 @@ import (
 	"anne-hub/models"
 	"anne-hub/pkg/groq"
 	"anne-hub/pkg/systemprompt"
+	"anne-hub/pkg/tts"
 	"anne-hub/services"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -19,6 +25,12 @@ import (
 var wsUpgrader = websocket.Upgrader{
     CheckOrigin: func(r *http.Request) bool { return true }, // Allow all origins; adjust as needed for security
 }
+
+func playAudio(filePath string) error {
+	cmd := exec.Command("afplay", filePath)
+	return cmd.Run()
+}
+
 
 
 // WebSocketConversationHandler handles WebSocket connections for PCM data collection.
@@ -73,9 +85,9 @@ func WebSocketConversationHandler(c echo.Context) error {
             }
 
             // Handle control messages like "EOS"
-            if msg == "EOS" { // Define "EOS" as the end-of-stream message
+            if msg == "EOS" { 
               
-                req, err := services.HandleProcessConversationInput(pcmData, headers)
+                currentConversation, err := services.HandleProcessConversationInput(pcmData, headers)
                 if err != nil {
                     log.Printf("Error processing conversation: %v", err)
                     conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Processing error: %s", err.Error())))
@@ -84,12 +96,27 @@ func WebSocketConversationHandler(c echo.Context) error {
 
 
                 // Handle audio conversion
-                wavData, err := processPCMData(req.RequestPCM)
+                wavData, err := processPCMData(currentConversation.RequestPCM)
                 if err != nil {
                     return err
                 }
+
+                // save to file
+                outFile, err := os.Create("m5audio.wav")
+                if err != nil {
+                    return fmt.Errorf("failed to create output file: %w", err)
+                }
+                
+                _, err = outFile.Write(wavData)
+                if err != nil {
+                    return fmt.Errorf("failed to write audio content to file: %w", err)
+                }
+                
+                defer outFile.Close()
+
+
                 // Generate transcription
-                transcription, err := groq.GenerateWhisperTranscription(wavData, req.Language)
+                transcription, err := groq.GenerateWhisperTranscription(wavData, currentConversation.Language)
                 if err != nil {
                     log.Printf("Failed to get transcription: %v\n", err)
                     return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -99,7 +126,7 @@ func WebSocketConversationHandler(c echo.Context) error {
                 log.Printf("Transcription received: %s\n", transcription)
 
                 // Fetch previous conversation  
-                lastConversation, conversationHistory, err := services.GetPreviousConversation(req.UserID, 15)
+                lastConversation, conversationHistory, err := services.GetPreviousConversation(currentConversation.UserID, 15)
                 if err != nil {
                     log.Printf("Failed to query conversation: %v\n", err)
                     break;
@@ -108,13 +135,13 @@ func WebSocketConversationHandler(c echo.Context) error {
                 log.Printf("Last conversation: %v\n", lastConversation)
                 log.Printf("Conversation history: %v\n", conversationHistory)
 
-                systemPrompt := systemprompt.DynamicGeneration(req.UserID)
+                systemPrompt := systemprompt.DynamicGeneration(currentConversation.UserID)
 
                 // Append user message to conversation history
 	            services.AppendMessageToConversationHistory(&conversationHistory, "user", transcription)
 
                 // Generate LLM response
-                llmResponse, err := groq.GenerateLLMResponseFromConversationData(conversationHistory, systemPrompt, req.Language)
+                llmResponse, err := groq.GenerateLLMResponseFromConversationData(conversationHistory, systemPrompt, currentConversation.Language)
                 if err != nil {
                     log.Printf("Error generating LLM response: %v\n", err)
                     break;
@@ -140,31 +167,71 @@ func WebSocketConversationHandler(c echo.Context) error {
 
                 // Insert or update conversation in the database
                 if lastConversation == nil {
-                    if err := services.InsertNewConversation(req.UserID, convoJSON); err != nil {
-                        return err
+                    if err := services.InsertNewConversation(currentConversation.UserID, convoJSON); err != nil {
+                        log.Print("Failed inserting new Conversation")
+                        break;
                     }
                 } else {
                     if err := services.UpdateExistingConversation(lastConversation.ID, convoJSON); err != nil {
-                        return err
+                        log.Print("Failed updating Conversation")
+                        break;
                     }
                 }
                 log.Printf("Final assistant response to send: %s\n", assistantResponse)
 
-
-
-
-                fmt.Println("Sending WAV file to client")
-                //send ws message to client with pcm data
-                // err = conn.WriteMessage(websocket.BinaryMessage, pcmData)
-                // if err != nil {
-                //     log.Printf("Error sending PCM data: %v\n", err)
-                // }
-                err = conn.WriteMessage(websocket.TextMessage, []byte("Sending WAV file to client"))
+                tts, err := tts.GoogleTextToSpeech(assistantResponse, currentConversation.Language)
                 if err != nil {
-                    log.Printf("Error sending PCM data: %v\n", err)
+                    log.Print("Error converting text to speech:", err)
+                    break;
                 }
 
 
+                // Create ./audio directory if it doesn't exist
+                audioDir := "./audio"
+                err = os.MkdirAll(audioDir, os.ModePerm)
+                if err != nil {
+                    log.Fatalf("Failed to create audio directory: %v", err)
+                }
+
+                // Generate a random file name
+                rand.Seed(time.Now().UnixNano())
+                randomNumber := rand.Intn(1000000) // Random number up to 6 digits
+                fileName := fmt.Sprintf("audio_%d.wav", randomNumber) // Assuming the output format is .wav
+                filePath := filepath.Join(audioDir, fileName)
+
+                // Save audio file
+                f, err := os.Create(filePath)
+                if err != nil {
+                    log.Fatalf("Failed to create file: %v", err)
+                }
+                defer f.Close()
+
+                // Write audio data to file (simulate writing audio data)
+                _, err = f.Write(tts)
+                if err != nil {
+                    log.Fatalf("Failed to write to file: %v", err)
+                }
+
+                fmt.Printf("Audio file saved successfully at %s\n", filePath)
+
+                // Play the audio file
+                err = playAudio(filePath)
+                if err != nil {
+                    log.Fatalf("Failed to play audio: %v", err)
+                }
+
+
+                    // outFile, err := os.Create("test_linear16.wav")
+                // if err != nil {
+                //     return fmt.Errorf("failed to create output file: %w", err)
+                // }
+                // defer outFile.Close()
+                // _, err = outFile.Write(ttsByteArray)
+                // if err != nil {
+                //     return fmt.Errorf("failed to write audio content to file: %w", err)
+                // }
+                
+           
 
                 // conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("WAV file saved")))
 

@@ -22,3 +22,7 @@ go.work
 
 
 .env
+audio/*.wav
+audio/*.pcm
+
+secrets/

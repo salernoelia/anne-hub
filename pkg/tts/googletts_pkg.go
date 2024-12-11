@@ -3,6 +3,7 @@ package tts
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
@@ -27,8 +28,8 @@ func GoogleTextToSpeechFile(text, filePath string, language string) error {
 		TTSCode = "de-DE"
 		TTSName = "de-DE-Studio-B"
 	} else if language == "english" {
-		TTSCode = "en-GB"
-		TTSName = "en-GB-Studio-B"
+		TTSCode = "en-US"
+		TTSName = "en-US-Journey-F"
 
 	}
 	// Build the request without effects profile
@@ -67,7 +68,7 @@ func GoogleTextToSpeechFile(text, filePath string, language string) error {
 }
 
 // GoogleTextToSpeech converts the given text to speech, saves to the specified filePath
-func GoogleTextToSpeech(text, filePath, language string) ([]byte, error) {
+func GoogleTextToSpeech(text, language string) ([]byte, error) {
 
 	ctx := context.Background()
 
@@ -80,13 +81,16 @@ func GoogleTextToSpeech(text, filePath, language string) ([]byte, error) {
 	var TTSCode string
 	var TTSName string
 
-	if language == "german" {
+	if language == "de" {
 		TTSCode = "de-DE"
 		TTSName = "de-DE-Studio-B"
-	} else if language == "english" {
-		TTSCode = "en-GB"
-		TTSName = "en-GB-Studio-B"
-
+	} else if language == "en" {
+		TTSCode = "en-US"
+		TTSName = "en-US-Journey-F"
+	} else {
+		log.Print("No language Code added, defaulting")
+		TTSCode = "en-US"
+		TTSName = "en-US-Journey-F"
 	}
 	// Build the request without effects profile
 	req := &texttospeechpb.SynthesizeSpeechRequest{

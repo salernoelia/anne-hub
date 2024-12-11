@@ -42,7 +42,7 @@ func ToWAV(pcmData []byte) ([]byte, error) {
 
 // ToWAV converts PCM data to WAV format.
 // It assumes PCM data is 16-bit mono at 16 kHz. Adjust parameters as needed.
-func ToWAVFile(pcmData []byte) ([]byte, error) {
+func M5ToWAVFile(pcmData []byte) ([]byte, error) {
     var wavData bytes.Buffer
 
     // WAV file parameters
@@ -75,3 +75,5 @@ func ToWAVFile(pcmData []byte) ([]byte, error) {
 
     return wavData.Bytes(), nil
 }
+
+
