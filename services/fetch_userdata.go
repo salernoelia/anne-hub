@@ -70,12 +70,45 @@ func FetchUserData(userID uuid.UUID) (models.UserData, error) {
         interests = append(interests, interest)
     }
 
-	fmt.Println("interests",interests)
-
-    if err = rows.Err(); err != nil {
-        log.Printf("Error iterating over interest rows: %v", err)
-        return models.UserData{}, fmt.Errorf("error iterating over interests data: %v", err)
+	taskQuery := `
+    select id, user_id, title, description, due_date, completed, created_at
+    from tasks
+    where user_id = $1 and completed = false`
+    rows, err = db.DB.Query(taskQuery, userID)
+    if err != nil {
+        log.Printf("Error fetching user tasks: %v", err)
+        return models.UserData{}, fmt.Errorf("error fetching user tasks: %v", err)
     }
+
+    var tasks []models.Task
+
+    for rows.Next() {
+        var task models.Task
+        err := rows.Scan(
+            &task.ID,
+            &task.UserID,
+            &task.Title,
+            &task.Description,
+            &task.DueDate,
+            &task.Completed,
+            &task.CreatedAt,
+        )
+        if err != nil {
+            log.Printf("Error scanning task row: %v", err)
+            continue
+        }
+        tasks = append(tasks, task)
+    }
+
+    if rows.Err() != nil {
+        log.Printf("Error iterating over rows: %v", rows.Err())
+        return models.UserData{}, fmt.Errorf("error iterating over rows: %v", rows.Err())
+    }
+
+    fmt.Println("tasks:", tasks)
+
+
+
 
     // Convert models.User to models.UserDetails
     userDetails := models.UserDetails{
@@ -93,5 +126,6 @@ func FetchUserData(userID uuid.UUID) (models.UserData, error) {
     return models.UserData{
         User:      userDetails,
         Interests: interests,
+        Tasks:     tasks,
     }, nil
 }

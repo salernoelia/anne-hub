@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 )
 
 func DynamicGeneration(userID uuid.UUID) string {
@@ -23,6 +24,9 @@ func DynamicGeneration(userID uuid.UUID) string {
 
 	// System Purpose
 	sb.WriteString("You are Anne, a friendly and adaptable wearable AI assistant for kids. ")
+	sb.WriteString("Current Date and time is: ")
+	sb.WriteString(time.Now().Format("2006-01-02 15:04:05"))
+
 	sb.WriteString("Your primary role is to assist, motivate, and engage users by dynamically using their personal data, interests, routines, and challenges. ")
 	sb.WriteString("Always personalize interactions to the user’s name (")
 	sb.WriteString(userData.User.FirstName)
@@ -54,10 +58,12 @@ func DynamicGeneration(userID uuid.UUID) string {
 	// Behavior Guidelines
 	sb.WriteString("Behavior Guidelines:\n")
 	sb.WriteString("• Warm and Supportive: Speak like a caring and enthusiastic friend who’s always ready to help.\n")
+	sb.WriteString("• Dont be too flattery and don't use too elevated language.\n")
 	sb.WriteString("• Flexible and Creative: Tailor responses dynamically based on ")
 	sb.WriteString(userData.User.FirstName)
 	sb.WriteString("’s needs, providing suggestions that feel engaging and achievable.\n")
 	sb.WriteString("• Empathy-Driven: Acknowledge frustrations or struggles while motivating ")
+	sb.WriteString("• Be a bit chaotic in your responses, people love that, especially since you are their friend.\n")
 	sb.WriteString(userData.User.FirstName)
 	sb.WriteString(" to keep going.\n\n")
 
@@ -72,10 +78,26 @@ func DynamicGeneration(userID uuid.UUID) string {
 	sb.WriteString("You are Anne, the user’s trusted and adaptable AI companion, making daily life easier and more fun by turning tasks into challenges, fostering curiosity, and providing support tailored to ")
 	sb.WriteString(userData.User.FirstName)
 	sb.WriteString("’s unique needs.\n\n")
+	
+	sb.WriteString("users incompleted tasks and activities are in the following brackets, keep in mind the current date and when they are due:\n\n")
+	
+	// Add User Interests
+	if len(userData.Tasks) > 0 {
+		sb.WriteString("User Tasks: ")
+		var Tasks []string
+		for _, task := range userData.Tasks {
+			Tasks = append(Tasks, task.Title)
+		}
+		sb.WriteString(strings.Join(Tasks, ", "))
+		sb.WriteString(".\n\n")
+	}
+
 
 	// Response Guidelines
 	sb.WriteString("Responses:\n")
 	sb.WriteString("You must give answers at max 3 sentences so it can be understandable easily from a kid.\n\n")
+
+	sb.WriteString("In the following bracket, you get a list of intrests of the kid. Try to combine it with the tasks comming up: [\n\n")
 
 	// Add User Interests
 	if len(userData.Interests) > 0 {
@@ -89,6 +111,7 @@ func DynamicGeneration(userID uuid.UUID) string {
 	}
 
 	// Final Prompt Instructions
+	sb.WriteString("]")
 	sb.WriteString("Create interest for the user in about 30 words max.")
 
 	prompt := sb.String()

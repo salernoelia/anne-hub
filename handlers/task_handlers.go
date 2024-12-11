@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/lib/pq"
 )
 
 // GetAllTasks retrieves all tasks from the database with pagination and error handling
@@ -26,7 +25,7 @@ func GetAllTasks(c echo.Context) error {
 	offset := (page - 1) * limit
 
 	query := `
-		SELECT id, user_id, title, description, due_date, completed, created_at, interest_links 
+		SELECT id, user_id, title, description, due_date, completed, created_at
 		FROM tasks 
 		ORDER BY created_at DESC 
 		LIMIT $1 OFFSET $2
@@ -45,7 +44,6 @@ func GetAllTasks(c echo.Context) error {
 	tasks := []models.Task{}
 	for rows.Next() {
 		task := models.Task{}
-		var interestLinks pq.StringArray
 
 		err := rows.Scan(
 			&task.ID,
@@ -55,7 +53,6 @@ func GetAllTasks(c echo.Context) error {
 			&task.DueDate,
 			&task.Completed,
 			&task.CreatedAt,
-			&interestLinks,
 		)
 		if err != nil {
 			c.Logger().Errorf("Error scanning task: %v", err)
@@ -64,7 +61,7 @@ func GetAllTasks(c echo.Context) error {
 			})
 		}
 
-		task.InterestLinks = []string(interestLinks)
+
 		tasks = append(tasks, task)
 	}
 
@@ -90,10 +87,9 @@ func GetTaskByID(c echo.Context) error {
 	}
 
 	var task models.Task
-	var interestLinks pq.StringArray
 
 	query := `
-		SELECT id, user_id, title, description, due_date, completed, created_at, interest_links 
+		SELECT id, user_id, title, description, due_date, completed, created_at
 		FROM tasks 
 		WHERE id = $1
 	`
@@ -106,7 +102,6 @@ func GetTaskByID(c echo.Context) error {
 		&task.DueDate,
 		&task.Completed,
 		&task.CreatedAt,
-		&interestLinks,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -120,7 +115,6 @@ func GetTaskByID(c echo.Context) error {
 		})
 	}
 
-	task.InterestLinks = []string(interestLinks)
 	return c.JSON(http.StatusOK, task)
 }
 
@@ -145,9 +139,6 @@ func CreateTaskHandler(c echo.Context) error {
 	if task.CreatedAt.IsZero() {
 		task.CreatedAt = time.Now()
 	}
-	if task.InterestLinks == nil {
-		task.InterestLinks = []string{}
-	}
 
 	query := `
 		INSERT INTO tasks (
@@ -156,13 +147,12 @@ func CreateTaskHandler(c echo.Context) error {
 			description,
 			due_date,
 			completed,
-			created_at,
-			interest_links
+			created_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 
-	// Use pq.Array to handle the []string for interest_links
+
 	err := db.DB.QueryRow(query,
 		task.UserID,
 		task.Title,
@@ -170,7 +160,6 @@ func CreateTaskHandler(c echo.Context) error {
 		task.DueDate,
 		task.Completed,
 		task.CreatedAt,
-		pq.Array(task.InterestLinks),
 	).Scan(&task.ID)
 	if err != nil {
 		c.Logger().Errorf("Error inserting task: %v", err)
@@ -214,7 +203,6 @@ func UpdateTaskHandler(c echo.Context) error {
 			description = $3,
 			due_date = $4,
 			completed = $5,
-			interest_links = $6
 		WHERE id = $7
 	`
 
@@ -224,7 +212,6 @@ func UpdateTaskHandler(c echo.Context) error {
 		task.Description,
 		task.DueDate,
 		task.Completed,
-		pq.Array(task.InterestLinks),
 		id,
 	)
 	if err != nil {
@@ -298,10 +285,9 @@ func DeleteTaskHandler(c echo.Context) error {
 // fetchTaskByID is a helper function to retrieve a task after update
 func fetchTaskByID(id int64) (*models.Task, error) {
 	var task models.Task
-	var interestLinks pq.StringArray
 
 	query := `
-		SELECT id, user_id, title, description, due_date, completed, created_at, interest_links 
+		SELECT id, user_id, title, description, due_date, completed, created_at
 		FROM tasks 
 		WHERE id = $1
 	`
@@ -314,13 +300,11 @@ func fetchTaskByID(id int64) (*models.Task, error) {
 		&task.DueDate,
 		&task.Completed,
 		&task.CreatedAt,
-		&interestLinks,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	task.InterestLinks = []string(interestLinks)
 	return &task, nil
 }
 
@@ -331,9 +315,6 @@ func validateTaskInput(task *models.Task) error {
 	}
 	if len(task.Title) > 255 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Title cannot exceed 255 characters.")
-	}
-	if task.DueDate != nil && task.DueDate.Before(time.Now()) {
-		return echo.NewHTTPError(http.StatusBadRequest, "Due date cannot be in the past.")
 	}
 	// Add more validation rules as needed
 	return nil

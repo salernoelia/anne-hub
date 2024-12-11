@@ -69,7 +69,7 @@ func GetPreviousConversation(userID uuid.UUID, resetMinutes int) (*models.Conver
         LIMIT 1;
     `
 
-	log.Printf("Executing SQL Query with UserID=%s, ResetMinutes=%d", userID, resetMinutes)
+	// log.Printf("Executing SQL Query with UserID=%s, ResetMinutes=%d", userID, resetMinutes)
 	err := db.DB.QueryRow(query, userID, resetMinutes).Scan(
 		&lastConversation.ID,
 		&lastConversation.UserID,
@@ -86,7 +86,7 @@ func GetPreviousConversation(userID uuid.UUID, resetMinutes int) (*models.Conver
 		return nil, models.ConversationHistory{}, err
 	}
 
-	log.Printf("Previous conversation found: %+v\n", lastConversation)
+	// log.Printf("Previous conversation found: %+v\n", lastConversation)
 
 	// Unmarshal conversation history if present.
 	if len(lastConversation.ConversationHistory) > 0 {
@@ -102,7 +102,7 @@ func GetPreviousConversation(userID uuid.UUID, resetMinutes int) (*models.Conver
 
 // updates an existing conversation in the database.
 func UpdateExistingConversation(convoID int64, convoJSON []byte) error {
-	log.Printf("Updating existing conversation ID: %d\n", convoID)
+	// log.Printf("Updating existing conversation ID: %d\n", convoID)
 	updateQuery := `
 		UPDATE conversations
 		SET conversation_history = $1, updated_at = NOW()
@@ -110,7 +110,7 @@ func UpdateExistingConversation(convoID int64, convoJSON []byte) error {
 		RETURNING updated_at;
 	`
 
-	log.Printf("Executing UPDATE Query with ConversationHistory: %s and ID: %d", string(convoJSON), convoID)
+	// log.Printf("Executing UPDATE Query with ConversationHistory: %s and ID: %d", string(convoJSON), convoID)
 
 	var updatedAt time.Time
 	err := db.DB.QueryRow(updateQuery, convoJSON, convoID).Scan(&updatedAt)
@@ -122,7 +122,7 @@ func UpdateExistingConversation(convoID int64, convoJSON []byte) error {
 			Internal: err,
 		}
 	}
-	log.Printf("Conversation ID: %d updated at %v\n", convoID, updatedAt)
+	// log.Printf("Conversation ID: %d updated at %v\n", convoID, updatedAt)
 	return nil
 }
 
@@ -135,7 +135,7 @@ func InsertNewConversation(userID uuid.UUID, convoJSON []byte) error {
 		RETURNING id, created_at;
 	`
 
-	log.Printf("Executing INSERT Query with UserID: %s and ConversationHistory: %s", userID, string(convoJSON))
+	// log.Printf("Executing INSERT Query with UserID: %s and ConversationHistory: %s", userID, string(convoJSON))
 
 	var newID int64
 	var createdAt time.Time
@@ -155,7 +155,7 @@ func InsertNewConversation(userID uuid.UUID, convoJSON []byte) error {
 			Internal: err,
 		}
 	}
-	log.Printf("New conversation inserted with ID: %d at %v\n", newID, createdAt)
+	// log.Printf("New conversation inserted with ID: %d at %v\n", newID, createdAt)
 	return nil
 }
 
@@ -168,6 +168,6 @@ func AppendMessageToConversationHistory(history *models.ConversationHistory, sen
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 	history.Messages = append(history.Messages, message)
-	log.Printf("Appended %s message to conversation history: %+v\n", sender, message)
+	// log.Printf("Appended %s message to conversation history: %+v\n", sender, message)
 }
 

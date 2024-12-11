@@ -29,4 +29,5 @@ type UserDetails struct {
 type UserData struct {
     User      UserDetails `json:"user"`
     Interests []Interest  `json:"interests"`
+    Tasks     []Task      `json:"tasks"`
 }
