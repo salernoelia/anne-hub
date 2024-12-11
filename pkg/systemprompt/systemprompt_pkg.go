@@ -6,6 +6,7 @@ import (
 )
 
 
+
 func DynamicGeneration(userID uuid.UUID) string {
 	log.Printf("Building system prompt for user ID: %s\n", userID.String())
 	prompt := "You are the friend of Marcus, which is the user. You are assisting Marcus (has ADHD, but you are not mentioning this) with a task they are scheduled to do."
