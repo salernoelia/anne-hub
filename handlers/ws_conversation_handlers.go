@@ -21,6 +21,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+var lastEmotionSent string = "suspicious"
+var emotionChanged bool = false
+
 // Upgrader configures the WebSocket upgrade parameters.
 var wsUpgrader = websocket.Upgrader{
     CheckOrigin: func(r *http.Request) bool { return true }, // Allow all origins; adjust as needed for security
@@ -78,6 +81,7 @@ func WebSocketConversationHandler(c echo.Context) error {
                 if err != nil {
                     log.Printf("Error parsing headers JSON: %v", err)
                     conn.WriteMessage(websocket.TextMessage, []byte("Invalid headers format."))
+             
                     continue
                 }
 
@@ -86,6 +90,7 @@ func WebSocketConversationHandler(c echo.Context) error {
 
                 headersReceived = true
                 conn.WriteMessage(websocket.TextMessage, []byte("Headers received successfully."))
+                emotionChanged = false
                 continue
             }
 
@@ -184,6 +189,30 @@ func WebSocketConversationHandler(c echo.Context) error {
                 }
                 log.Printf("Final assistant response to send: %s\n", assistantResponse)
 
+
+
+                if (!emotionChanged) {
+
+                if (lastEmotionSent == "suspicious") {
+                    conn.WriteMessage(websocket.TextMessage, []byte("celebration"))
+                    lastEmotionSent = "celebration"
+                    log.Print("celebration")
+                    emotionChanged = true
+                } else if (lastEmotionSent == "celebration") {
+                    conn.WriteMessage(websocket.TextMessage, []byte("suspicious"))
+                    lastEmotionSent = "suspicious"
+                    log.Print("suspicious")
+                    emotionChanged = true
+                } else {
+                    conn.WriteMessage(websocket.TextMessage, []byte("cute_smile"))
+                    lastEmotionSent = "cute_smile"
+                    log.Print("cute_smile")
+                    emotionChanged = true
+                }
+
+                } 
+                emotionChanged = false;
+
                 // tts, err := tts.GoogleTextToSpeech(assistantResponse, currentConversation.Language)
                 // if err != nil {
                 //     log.Print("Error converting text to speech:", err)
@@ -243,7 +272,7 @@ func WebSocketConversationHandler(c echo.Context) error {
                 
            
 
-                // conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("WAV file saved")))
+  
 
                 // Optionally, reset the PCM data buffer to allow for new recordings
                 pcmData = nil
