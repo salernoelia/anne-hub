@@ -67,6 +67,11 @@ func WebSocketConversationHandler(c echo.Context) error {
             msg := string(message)
             log.Printf("Received text message: %s", msg)
 
+            if msg == "PING" {
+                conn.WriteMessage(websocket.TextMessage, []byte("PONG"))
+                break 
+            }
+
             if !headersReceived {
                 // Attempt to parse the headers JSON
                 err := json.Unmarshal(message, &headers)
@@ -179,7 +184,12 @@ func WebSocketConversationHandler(c echo.Context) error {
                 }
                 log.Printf("Final assistant response to send: %s\n", assistantResponse)
 
-                tts, err := tts.GoogleTextToSpeech(assistantResponse, currentConversation.Language)
+                // tts, err := tts.GoogleTextToSpeech(assistantResponse, currentConversation.Language)
+                // if err != nil {
+                //     log.Print("Error converting text to speech:", err)
+                //     break;
+                // }
+                tts, err := tts.ElevenLabsTextToSpeech(assistantResponse)
                 if err != nil {
                     log.Print("Error converting text to speech:", err)
                     break;
@@ -237,10 +247,6 @@ func WebSocketConversationHandler(c echo.Context) error {
 
                 // Optionally, reset the PCM data buffer to allow for new recordings
                 pcmData = nil
-            } else {
-                // Handle other text messages if necessary
-                log.Printf("Unknown text message received: %s", msg)
-                conn.WriteMessage(websocket.TextMessage, []byte("Unknown command."))
             }
 
         case websocket.BinaryMessage:
