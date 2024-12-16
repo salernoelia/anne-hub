@@ -19,21 +19,34 @@ func ElevenLabsTextToSpeech(text string) ([]byte, error) {
 	// Create a TextToSpeechRequest
 	ttsReq := elevenlabs.TextToSpeechRequest{
 	Text:    text,
-	ModelID: "eleven_monolingual_v1",
+	ModelID: "eleven_multilingual_v2",
 	}
 
 	// Call the TextToSpeech method on the client, using the "Adam"'s voice ID.
-	audio, err := client.TextToSpeech("cgSgspJ2msm6clMCkdW9", ttsReq)
+	audio, err := client.TextToSpeech("SpswCMtbRJLQ3l5sYWYd", ttsReq, elevenlabs.OutputFormat("pcm_16000"))
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
+
+	// // Create a TextToSpeechRequest
+	// ttsReq := elevenlabs.TextToSpeechRequest{
+	// Text:    text,
+	// ModelID: "eleven_monolingual_v1",
+	// }
+
+	// // Call the TextToSpeech method on the client, using the "Adam"'s voice ID.
+	// audio, err := client.TextToSpeech("cgSgspJ2msm6clMCkdW9", ttsReq, elevenlabs.OutputFormat("pcm_16000"))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return nil, err
+	// }
 
 	// // Write the audio file bytes to disk
 	// if err := os.WriteFile("adam.mp3", audio, 0644); err != nil {
 	// log.Fatal(err)
 	// }
 
-	log.Println("Successfully generated audio file")
+	log.Println("Successfully generated PCM audio data")
 	return audio, err
 }

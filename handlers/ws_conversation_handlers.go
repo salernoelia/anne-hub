@@ -4,6 +4,7 @@ package handlers
 import (
 	"anne-hub/models"
 	"anne-hub/pkg/groq"
+	"anne-hub/pkg/pcm"
 	"anne-hub/pkg/systemprompt"
 	"anne-hub/pkg/tts"
 	"anne-hub/services"
@@ -238,26 +239,56 @@ func WebSocketConversationHandler(c echo.Context) error {
                 fileName := fmt.Sprintf("audio_%d.wav", randomNumber) // Assuming the output format is .wav
                 filePath := filepath.Join(audioDir, fileName)
 
-                // Save audio file
-                f, err := os.Create(filePath)
+                 // Convert PCM data to WAV
+                err = pcm.TTStoWav(tts, filePath)
                 if err != nil {
-                    log.Fatalf("Failed to create file: %v", err)
-                }
-                defer f.Close()
-
-                // Write audio data to file (simulate writing audio data)
-                _, err = f.Write(tts)
-                if err != nil {
-                    log.Fatalf("Failed to write to file: %v", err)
+                    log.Printf("Failed to convert TTS to WAV: %v", err)
+                    break
                 }
 
                 fmt.Printf("Audio file saved successfully at %s\n", filePath)
 
-                // Play the audio file
+
+                // output8BitPath := filepath.Join(audioDir, fmt.Sprintf("audio_%d_8bit.wav", randomNumber))
+                // err = audiofilters.ConvertTo8Bit(filePath, output8BitPath)
+                // if err != nil {
+                //     log.Printf("Failed to convert to 8-bit: %v", err)
+                //     break
+                // }
+                // fmt.Printf("8-bit WAV audio file saved successfully at %s\n", output8BitPath)
+
+                // Play the 8-bit audio file
                 err = playAudio(filePath)
                 if err != nil {
                     log.Fatalf("Failed to play audio: %v", err)
                 }
+
+
+
+                // Save audio file
+                // f, err := os.Create(filePath)
+                // if err != nil {
+                //     log.Fatalf("Failed to create file: %v", err)
+                // }
+                // defer f.Close()
+
+                // // Write audio data to file (simulate writing audio data)
+                // _, err = f.Write(tts)
+                // if err != nil {
+                //     log.Fatalf("Failed to write to file: %v", err)
+                // }
+
+                fmt.Printf("Audio file saved successfully at %s\n", filePath)
+
+                // send the 8-bit audio file path to the client
+                // conn.WriteMessage(websocket.BinaryMessage, []byte(output8BitPath))
+
+
+                // Play the audio file
+                // err = playAudio(filePath)
+                // if err != nil {
+                //     log.Fatalf("Failed to play audio: %v", err)
+                // }
 
 
                     // outFile, err := os.Create("test_linear16.wav")
