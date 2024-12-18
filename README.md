@@ -63,3 +63,13 @@ To run:
 ```sh
 sudo docker run --env-file .env -p 1323:1323 anne-hub
 ```
+
+# Quickstart with go cli
+
+```sh
+go mod tidy
+```
+
+```sh
+go build -o bin/anne-hub-v*
+```

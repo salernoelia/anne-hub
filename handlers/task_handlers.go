@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -118,57 +119,81 @@ func GetTaskByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, task)
 }
 
+func GetAllTasksByUserID(c echo.Context) error {
+    userIDParam := c.Param("id")
+    userID, err := uuid.Parse(userIDParam)
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]string{
+            "error": "Invalid user ID format",
+        })
+    }
+
+    query := `
+        SELECT id, user_id, title, description, due_date, completed, created_at
+        FROM tasks 
+        WHERE user_id = $1
+        ORDER BY created_at DESC 
+    `
+
+    tasks := []models.Task{}
+    err = db.DB.Select(&tasks, query, userID)
+    if err != nil {
+        c.Logger().Errorf("Error querying tasks: %v", err)
+        return c.JSON(http.StatusInternalServerError, map[string]string{
+            "error": "Failed to retrieve tasks",
+        })
+    }
+    return c.JSON(http.StatusOK, tasks)
+}
+
 // CreateTaskHandler creates a new task with validation and error handling
 func CreateTaskHandler(c echo.Context) error {
-	task := new(models.Task)
-	if err := c.Bind(task); err != nil {
-		c.Logger().Warnf("Bind error: %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid request payload.",
-		})
-	}
-
-	// Input Validation
-	if err := validateTaskInput(task); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": err.Error(),
-		})
-	}
+    task := new(models.Task)
+    if err := c.Bind(task); err != nil {
+        c.Logger().Warnf("Bind error: %v", err)
+        return c.JSON(http.StatusBadRequest, map[string]string{
+            "error": "Invalid request payload.",
+        })
+    }
 
 	// Set default values if necessary
 	if task.CreatedAt.IsZero() {
 		task.CreatedAt = time.Now()
 	}
+    if task.UserID == uuid.Nil {
+        return c.JSON(http.StatusBadRequest, map[string]string{
+            "error": "UserID is required.",
+        })
+    }
 
-	query := `
-		INSERT INTO tasks (
-			user_id,
-			title,
-			description,
-			due_date,
-			completed,
-			created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id
-	`
+    query := `
+        INSERT INTO tasks (
+            user_id,
+            title,
+            description,
+            due_date,
+            completed,
+            created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+    `
 
+    err := db.DB.QueryRow(query,
+        task.UserID,
+        task.Title,
+        task.Description,
+        task.DueDate,
+        task.Completed,
+        task.CreatedAt,
+    ).Scan(&task.ID)
+    if err != nil {
+        c.Logger().Errorf("Error inserting task: %v", err)
+        return c.JSON(http.StatusInternalServerError, map[string]string{
+            "error": "Failed to create task.",
+        })
+    }
 
-	err := db.DB.QueryRow(query,
-		task.UserID,
-		task.Title,
-		task.Description,
-		task.DueDate,
-		task.Completed,
-		task.CreatedAt,
-	).Scan(&task.ID)
-	if err != nil {
-		c.Logger().Errorf("Error inserting task: %v", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to create task.",
-		})
-	}
-
-	return c.JSON(http.StatusCreated, task)
+    return c.JSON(http.StatusCreated, task)
 }
 
 // UpdateTaskHandler updates an existing task by its ID with validation and error handling

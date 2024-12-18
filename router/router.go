@@ -18,13 +18,22 @@ func NewRouter() *echo.Echo {
 
 	// Task routes
 	e.GET("/tasks", handlers.GetAllTasks)
-	e.GET("/tasks/:id", handlers.GetTaskByID)
+	// e.GET("/tasks/:id", handlers.GetTaskByID)
+	e.GET("/tasks/:id", handlers.GetAllTasksByUserID)
 	e.POST("/tasks", handlers.CreateTaskHandler)
 	e.PUT("/tasks/:id", handlers.UpdateTaskHandler)
 	e.DELETE("/tasks/:id", handlers.DeleteTaskHandler)
 
+	// Interest routes
+	e.GET("/interests", handlers.GetAllInterests)
+	e.GET("/interests/:id", handlers.GetInterestByID)
+	e.POST("/interests", handlers.CreateInterestHandler)
+	e.PUT("/interests/:id", handlers.UpdateInterestHandler)
+	e.DELETE("/interests/:id", handlers.DeleteInterestHandler)
+
+
 	// User routes
-	e.GET("/users", handlers.GetAllUsersHandler)          // Fetch all users
+	e.GET("/users", handlers.GetAllUsersHandler)        
 	e.GET("/users/:id", handlers.GetUserHandler)           // Fetch a specific user by ID
 	e.POST("/users", handlers.CreateUserHandler)          // Create a new user
 	e.PUT("/users/:id", handlers.UpdateUserHandler)       // Update a specific user by ID

@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -34,6 +35,18 @@ func playAudio(filePath string) error {
 	cmd := exec.Command("afplay", filePath)
 	return cmd.Run()
 }
+
+
+type LLMResponseJSONfromPrompt struct {
+    Message string `json:"message"`
+    Emotion string `json:"emotion"`
+    TaskCompletion struct {
+        TaskID string `json:"task_id"`
+        Completed string `json:"completed"`
+    } `json:"task_completion"`
+}
+
+var assistantResponseJSON string
 
 
 
@@ -134,7 +147,10 @@ func WebSocketConversationHandler(c echo.Context) error {
                         "error": "Failed to get transcription: " + err.Error(),
                     })
                 }
+
+                transcription += "<for assistant: return as json as instructed in system prompt>"
                 log.Printf("Transcription received: %s\n", transcription)
+
 
                 // Fetch previous conversation  
                 lastConversation, conversationHistory, err := services.GetPreviousConversation(currentConversation.UserID, 15)
@@ -163,11 +179,61 @@ func WebSocketConversationHandler(c echo.Context) error {
                     break;
                 }
 
-                assistantResponse := llmResponse.Choices[0].Message.Content
-                log.Printf("Assistant response extracted: %s\n", assistantResponse)
+                
+
+                DirtyAssistantResponseJSON := llmResponse.Choices[0].Message.Content 
+                log.Printf("Assistant response JSON: %s\n", DirtyAssistantResponseJSON)
+
+                
+
+                if !strings.Contains(DirtyAssistantResponseJSON, "{") || !strings.Contains(DirtyAssistantResponseJSON, "}") {
+                    log.Printf("Invalid JSON response received: %s", DirtyAssistantResponseJSON)
+                    // Create a default response
+                    assistantResponseJSON = fmt.Sprintf(`{
+                        "message": "I didn't quite understand that. Could you please try again?",
+                        "emotion": "confused",
+                        "task_completion": {"task_id": "", "completed": ""}
+                    }`)
+                } else {
+                    // Extract JSON portion
+                    startIndex := strings.Index(DirtyAssistantResponseJSON, "{")
+                    endIndex := strings.LastIndex(DirtyAssistantResponseJSON, "}") + 1
+                    assistantResponseJSON = DirtyAssistantResponseJSON[startIndex:endIndex]
+                }
+
+                
+
+                // Clean up the assistant response JSON, everything before the first '{' and after the last '}'
+                assistantResponseJSON = DirtyAssistantResponseJSON[strings.Index(DirtyAssistantResponseJSON, "{"):strings.LastIndex(DirtyAssistantResponseJSON, "}")+1]
+
+
+            
+
+                // its a string in the format of a json object, so we need to unmarshal it
+                var assistantResponse LLMResponseJSONfromPrompt
+                err = json.Unmarshal([]byte(assistantResponseJSON), &assistantResponse)
+                if err != nil {
+                    log.Printf("Error unmarshalling assistant response JSON: %v\n", err)
+                    break;
+                }
+
+                if assistantResponse.Message == "" {
+                    log.Println("Assistant response message is empty")
+                    break;
+                }
+
+                // remove any { or } from the message
+                assistantResponse.Message = strings.ReplaceAll(assistantResponse.Message, "{", "")
+                assistantResponse.Message = strings.ReplaceAll(assistantResponse.Message, "}", "")
+
+                if assistantResponse.Emotion == "" {
+                    log.Println("Assistant response emotion is empty")
+                    assistantResponse.Emotion = "cute_smile"
+                }
+                
 
                 // Append assistant message to conversation history
-                services.AppendMessageToConversationHistory(&conversationHistory, "assistant", assistantResponse)
+                services.AppendMessageToConversationHistory(&conversationHistory, "assistant", assistantResponse.Message)
 
                 // Marshal conversation history
                 convoJSON, err := json.Marshal(conversationHistory)
@@ -188,38 +254,37 @@ func WebSocketConversationHandler(c echo.Context) error {
                         break;
                     }
                 }
-                log.Printf("Final assistant response to send: %s\n", assistantResponse)
+                log.Printf("Final assistant response to send: %s\n", assistantResponse.Message)
 
 
 
-                if (!emotionChanged) {
+                // if (!emotionChanged) {
 
-                if (lastEmotionSent == "suspicious") {
-                    conn.WriteMessage(websocket.TextMessage, []byte("celebration"))
-                    lastEmotionSent = "celebration"
-                    log.Print("celebration")
-                    emotionChanged = true
-                } else if (lastEmotionSent == "celebration") {
-                    conn.WriteMessage(websocket.TextMessage, []byte("suspicious"))
-                    lastEmotionSent = "suspicious"
-                    log.Print("suspicious")
-                    emotionChanged = true
-                } else {
-                    conn.WriteMessage(websocket.TextMessage, []byte("cute_smile"))
-                    lastEmotionSent = "cute_smile"
-                    log.Print("cute_smile")
-                    emotionChanged = true
-                }
+                // if (lastEmotionSent == "suspicious") {
+                //     conn.WriteMessage(websocket.TextMessage, []byte("celebration"))
+                //     lastEmotionSent = "celebration"
+                //     log.Print("celebration")
+                //     emotionChanged = true
+                // } else if (lastEmotionSent == "celebration") {
+                //     conn.WriteMessage(websocket.TextMessage, []byte("suspicious"))
+                //     lastEmotionSent = "suspicious"
+                //     log.Print("suspicious")
+                //     emotionChanged = true
+                // } else {
+                //     conn.WriteMessage(websocket.TextMessage, []byte("cute_smile"))
+                //     lastEmotionSent = "cute_smile"
+                //     log.Print("cute_smile")
+                //     emotionChanged = true
+                // }
+                // } 
 
-                } 
+                conn.WriteMessage(websocket.TextMessage, []byte(assistantResponse.Emotion))
+
                 emotionChanged = false;
 
-                // tts, err := tts.GoogleTextToSpeech(assistantResponse, currentConversation.Language)
-                // if err != nil {
-                //     log.Print("Error converting text to speech:", err)
-                //     break;
-                // }
-                tts, err := tts.ElevenLabsTextToSpeech(assistantResponse)
+
+           
+                tts, err := tts.ElevenLabsTextToSpeech(assistantResponse.Message)
                 if err != nil {
                     log.Print("Error converting text to speech:", err)
                     break;
@@ -249,23 +314,7 @@ func WebSocketConversationHandler(c echo.Context) error {
                 fmt.Printf("Audio file saved successfully at %s\n", filePath)
 
 
-                // output8BitPath := filepath.Join(audioDir, fmt.Sprintf("audio_%d_8bit.wav", randomNumber))
-                // err = audiofilters.ConvertTo8Bit(filePath, output8BitPath)
-                // if err != nil {
-                //     log.Printf("Failed to convert to 8-bit: %v", err)
-                //     break
-                // }
-                // fmt.Printf("8-bit WAV audio file saved successfully at %s\n", output8BitPath)
-
-                // Play the 8-bit audio file
-                err = playAudio(filePath)
-                if err != nil {
-                    log.Fatalf("Failed to play audio: %v", err)
-                }
-
-
-
-                // Save audio file
+                // //Save audio file
                 // f, err := os.Create(filePath)
                 // if err != nil {
                 //     log.Fatalf("Failed to create file: %v", err)
@@ -284,11 +333,14 @@ func WebSocketConversationHandler(c echo.Context) error {
                 // conn.WriteMessage(websocket.BinaryMessage, []byte(output8BitPath))
 
 
-                // Play the audio file
-                // err = playAudio(filePath)
-                // if err != nil {
-                //     log.Fatalf("Failed to play audio: %v", err)
-                // }
+                //Play the audio file
+                err = playAudio(filePath)
+                if err != nil {
+                    log.Fatalf("Failed to play audio: %v", err)
+                }
+
+                assistantResponse = LLMResponseJSONfromPrompt{}
+
 
 
                     // outFile, err := os.Create("test_linear16.wav")

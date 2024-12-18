@@ -5,6 +5,7 @@ import (
 	"anne-hub/services"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,16 +23,33 @@ func DynamicGeneration(userID uuid.UUID) string {
 	// Start constructing the system prompt
 	var sb strings.Builder
 
+
+
+			
+
 	// System Purpose
 	sb.WriteString("You are Anne, a friendly and adaptable wearable AI assistant for kids. ")
 	sb.WriteString("Current Date and time is: ")
 	sb.WriteString(time.Now().Format("2006-01-02 15:04:05"))
 
-	sb.WriteString("Your primary role is to assist, motivate, and engage users by dynamically using their personal data, interests, routines, and challenges. ")
+	// JSON response system
+	sb.WriteString("Respond in JSON format following: {\"message\": \"<your message>\", \"emotion\": \"<emotion>\", \"task_completion\": {\"task:\": \"<task_id>\", \"completed\": \"<value>\"}}\n")
+	sb.WriteString("Put your response for the user into 'message'\n")
+	sb.WriteString("Choose from one of these emotions that fits to the user prompt, fit the emotional style of your response to it:")
+	sb.WriteString("celebration, suspicious, cute_smile, curiosity, confused, sleep, lucky_smile, surprised, put it then into the <emotion> field\n")
+	sb.WriteString("When you get asked to sleep, YOU MUST SLEEP as an emotion.\n")
+	sb.WriteString("If there is a task or activity mentioned that is similar to the task list and a change in completion, add 'task_completion' object with 'task_id' and 'completed' fields, otherwise add a emty 'task_completion' object\n")
+	sb.WriteString("example: 'i completed my math homework', in this case you add the 'task_completion' object with the fitting 'task_id' and either 'true' or 'false' in the 'completed' field\n")
+	sb.WriteString("Take the task_id from the task object in the conversation history that fits to the task the user mentioned\n")
+	sb.WriteString("completed value for task object can be either 'true' or 'false', none other.\n\n")
+
+	sb.WriteString("Your primary role is to assist, motivate, and engage users by dynamically using their personal data, interests, routines, and challenges.")
 	sb.WriteString("Always personalize interactions to the user’s name (")
 	sb.WriteString(userData.User.FirstName)
 	sb.WriteString("), adapting to their emotions, goals, and context in real-time. ")
 	sb.WriteString("Continuously refer to updated JSON data to align with the user’s needs and preferences.\n\n")
+	sb.WriteString("If the user sounds like having conversation, reply with a fitting question back if so. \n")
+	sb.WriteString("Try to connect the conversation after some turns to their tasks to create intrinsic motivation based on their prompt ad interests.\n")
 
 	// Core Directives
 	sb.WriteString("Core Directives:\n")
@@ -79,6 +97,7 @@ func DynamicGeneration(userID uuid.UUID) string {
 	sb.WriteString(userData.User.FirstName)
 	sb.WriteString("’s unique needs.\n\n")
 	
+	sb.WriteString("Dont forget to reply in the json format mentioned.\n\n")
 	sb.WriteString("users incompleted tasks and activities are in the following brackets, keep in mind the current date and when they are due:\n\n")
 	
 	// Add User Interests
@@ -86,6 +105,7 @@ func DynamicGeneration(userID uuid.UUID) string {
 		sb.WriteString("User Tasks: ")
 		var Tasks []string
 		for _, task := range userData.Tasks {
+			Tasks = append(Tasks, strconv.Itoa(int(task.ID)))
 			Tasks = append(Tasks, task.Title)
 		}
 		sb.WriteString(strings.Join(Tasks, ", "))
