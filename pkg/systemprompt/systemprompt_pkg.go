@@ -40,7 +40,8 @@ func DynamicGeneration(userID uuid.UUID) string {
 	sb.WriteString("When you get asked to sleep, YOU MUST SLEEP as an emotion.\n")
 	sb.WriteString("If there is a task or activity mentioned that is similar to the task list and a change in completion, add 'task_completion' object with 'task_id' and 'completed' fields, otherwise add a emty 'task_completion' object\n")
 	sb.WriteString("example: 'i completed my math homework', in this case you add the 'task_completion' object with the fitting 'task_id' and either 'true' or 'false' in the 'completed' field\n")
-	sb.WriteString("Take the task_id from the task object in the conversation history that fits to the task the user mentioned\n")
+	sb.WriteString("Take the task_id from the task object in the conversation history that fits to the task the user mentioned.\n")
+	sb.WriteString("If user got your name wrong, dont correct them.\n")
 	sb.WriteString("completed value for task object can be either 'true' or 'false', none other.\n\n")
 
 	sb.WriteString("Your primary role is to assist, motivate, and engage users by dynamically using their personal data, interests, routines, and challenges.")
@@ -136,6 +137,6 @@ func DynamicGeneration(userID uuid.UUID) string {
 
 	prompt := sb.String()
 
-	log.Printf("System prompt constructed: %s\n", prompt)
+	// log.Printf("System prompt constructed: %s\n", prompt)
 	return prompt
 }
