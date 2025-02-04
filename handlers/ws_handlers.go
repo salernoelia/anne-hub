@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"anne-hub/pkg/fs"
-	"anne-hub/pkg/pcm" // Replace with your actual module path
+	"anne-hub/pkg/pcm"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 )
 
-// Upgrader configures the WebSocket upgrade parameters.
+
 var upgrader = websocket.Upgrader{
-    CheckOrigin: func(r *http.Request) bool { return true }, // Allow all origins; adjust as needed for security
+    CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 // WebSocketHandler handles WebSocket connections for PCM data collection.
@@ -29,10 +29,9 @@ func WebSocketHandler(c echo.Context) error {
     }
     defer conn.Close()
 
-    var pcmData []byte // Buffer to accumulate PCM data
+    var pcmData []byte 
 
     for {
-        // Read incoming messages
         messageType, message, err := conn.ReadMessage()
         if err != nil {
             if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -45,7 +44,6 @@ func WebSocketHandler(c echo.Context) error {
 
         switch messageType {
         case websocket.BinaryMessage:
-            // Append binary PCM data to the buffer
             log.Printf("Received %d bytes of PCM data", len(message))
             pcmData = append(pcmData, message...)
 
@@ -53,7 +51,7 @@ func WebSocketHandler(c echo.Context) error {
             msg := string(message)
             log.Printf("Received text message: %s", msg)
 
-            if msg == "EOS" { // Define "EOS" as the end-of-stream message
+            if msg == "EOS" {
                 if len(pcmData) == 0 {
                     log.Println("No PCM data received before EOS.")
                     conn.WriteMessage(websocket.TextMessage, []byte("No PCM data received."))
@@ -88,10 +86,8 @@ func WebSocketHandler(c echo.Context) error {
                 log.Printf("WAV file saved successfully as %s", filename)
                 conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("WAV file saved as %s", filename)))
 
-                // Optionally, reset the PCM data buffer to allow for new recordings
                 pcmData = nil
             } else {
-                // Handle other text messages if necessary
                 log.Printf("Unknown text message received: %s", msg)
                 conn.WriteMessage(websocket.TextMessage, []byte("Unknown command."))
             }
