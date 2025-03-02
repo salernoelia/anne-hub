@@ -36,7 +36,6 @@ type DataChunkHeader struct {
 
 // WebSocketConversationHandler handles WebSocket connections for PCM data collection.
 func WebSocketTestHandler(c echo.Context) error {
-    // Upgrade the HTTP connection to a WebSocket connection
     conn, err := wsUpgrader.Upgrade(c.Response(), c.Request(), nil)
     if err != nil {
         log.Println("WebSocket upgrade error:", err)
@@ -44,15 +43,12 @@ func WebSocketTestHandler(c echo.Context) error {
     }
     defer conn.Close()
 
-    // Initialize variables to store headers and PCM data
     var headers models.WSRequestHeaders
-    var pcmData []byte // Buffer to accumulate PCM data
+    var pcmData []byte
 
-    // Set a flag to check if headers have been received
     headersReceived := false
 
     for {
-        // Read incoming messages
         messageType, message, err := conn.ReadMessage()
         if err != nil {
             if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
