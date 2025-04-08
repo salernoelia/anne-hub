@@ -1,5 +1,7 @@
 # Anne Hub
 
+[Project Info](https://eliasalerno.ch/work/anne)
+
 Routing and processing server for anne wear and anne companion.
 
 ## Setup the PostgreSQL DB and Migrations
