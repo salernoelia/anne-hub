@@ -12,42 +12,39 @@ import (
 
 func TranscribeAudio(c echo.Context) error {
 	log.Println("TranscribeAudio handler called")
-    // Read the PCM data from the request body
-    pcmData, err := io.ReadAll(c.Request().Body)
-    if err != nil {
-        log.Println("Failed to read request body:", err)
-        return c.JSON(http.StatusBadRequest, map[string]string{
-            "error": "Failed to read request body",
-        })
-    }
-    defer c.Request().Body.Close()
-    log.Println("Received audio data of size:", len(pcmData))
 
-    // Convert PCM to WAV
-    wavData, err := pcm.ToWAV(pcmData)
-    if err != nil {
-        log.Println("Failed to convert PCM to WAV:", err)
-        return c.JSON(http.StatusInternalServerError, map[string]string{
-            "error": "Failed to convert PCM to WAV",
-        })
-    }
-    log.Println("PCM data converted to WAV format")
+	pcmData, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		log.Println("Failed to read request body:", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Failed to read request body",
+		})
+	}
+	defer c.Request().Body.Close()
+	log.Println("Received audio data of size:", len(pcmData))
 
-    // Send the WAV data to Groq API
-    transcription, err := groq.GenerateWhisperTranscription(wavData, "en")
-    if err != nil {
-        log.Println("Failed to get transcription:", err)
-        return c.JSON(http.StatusInternalServerError, map[string]string{
-            "error": "Failed to get transcription: " + err.Error(),
-        })
-    }
-    log.Println("Received transcription from Groq API")
+	wavData, err := pcm.ToWAV(pcmData)
+	if err != nil {
+		log.Println("Failed to convert PCM to WAV:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to convert PCM to WAV",
+		})
+	}
+	log.Println("PCM data converted to WAV format")
+
+	transcription, err := groq.GenerateWhisperTranscription(wavData, "en")
+	if err != nil {
+		log.Println("Failed to get transcription:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to get transcription: " + err.Error(),
+		})
+	}
+	log.Println("Received transcription from Groq API")
 
 	log.Println("Transcription:", transcription)
 
-    // Return the transcription
-    log.Println("Transcription sent to client")
-    return c.JSON(http.StatusOK, map[string]string{
-        "transcription": transcription,
-    })
+	log.Println("Transcription sent to client")
+	return c.JSON(http.StatusOK, map[string]string{
+		"transcription": transcription,
+	})
 }

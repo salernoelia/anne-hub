@@ -9,19 +9,16 @@ import (
 	"github.com/google/uuid"
 )
 
-// Message represents a single message in the conversation history.
 type Message struct {
 	Sender    string `json:"sender"`
 	Content   string `json:"content"`
 	Timestamp string `json:"timestamp"`
 }
 
-// ConversationHistory holds the conversation history as a list of messages.
 type ConversationHistory struct {
 	Messages []Message `json:"messages"`
 }
 
-// AnneWearConversationRequest represents the incoming request for a conversation.
 type AnneWearConversationRequest struct {
 	UserID      uuid.UUID `json:"user_id"`
 	DeviceID    int       `json:"device_id"`
@@ -30,7 +27,6 @@ type AnneWearConversationRequest struct {
 	RequestTime string    `json:"request_time"`
 }
 
-// Conversation represents a conversation record in the database.
 type Conversation struct {
 	ID                  int64           `db:"id" json:"id"`
 	UserID              uuid.UUID       `db:"user_id" json:"user_id"`

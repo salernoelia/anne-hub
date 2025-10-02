@@ -145,9 +145,9 @@ func WebSocketConversationHandler(c echo.Context) error {
 				transcription += "<for assistant: you must return as json as instructed in system prompt format: {\"message\": \"<your message>\", \"emotion\": \"<emotion>\", \"task_completion\": {\"task:\": \"<task_id>\", \"completed\": \"<value>\"}}"
 				transcription += ", if there was no task mentioned, add an empty task_completion object>"
 
-                log.Print("/----------------------------------------------------------------/")
+				log.Print("/----------------------------------------------------------------/")
 				log.Printf("Transcription received: %s\n", transcription)
-                log.Print("/----------------------------------------------------------------/")
+				log.Print("/----------------------------------------------------------------/")
 
 				lastConversation, conversationHistory, err := services.GetPreviousConversation(currentConversation.UserID, 15)
 				if err != nil {
@@ -188,7 +188,7 @@ func WebSocketConversationHandler(c echo.Context) error {
 					break
 				}
 
-				assistantResponseJSON = DirtyAssistantResponseJSON[strings.Index(DirtyAssistantResponseJSON, "{"):strings.LastIndex(DirtyAssistantResponseJSON, "}")+1]
+				assistantResponseJSON = DirtyAssistantResponseJSON[strings.Index(DirtyAssistantResponseJSON, "{") : strings.LastIndex(DirtyAssistantResponseJSON, "}")+1]
 
 				var assistantResponse LLMResponseJSONfromPrompt
 				err = json.Unmarshal([]byte(assistantResponseJSON), &assistantResponse)
@@ -245,38 +245,35 @@ func WebSocketConversationHandler(c echo.Context) error {
 
 				conn.WriteMessage(websocket.TextMessage, []byte(assistantResponse.Emotion))
 
-                tts, err := tts.ElevenLabsTextToSpeech(assistantResponse.Message)
-                if err != nil {
-                    log.Print("Error converting text to speech:", err)
-                    break;
-                }
+				tts, err := tts.ElevenLabsTextToSpeech(assistantResponse.Message)
+				if err != nil {
+					log.Print("Error converting text to speech:", err)
+					break
+				}
 
+				audioDir := "./audio"
+				err = os.MkdirAll(audioDir, os.ModePerm)
+				if err != nil {
+					log.Fatalf("Failed to create audio directory: %v", err)
+				}
 
-              
-                audioDir := "./audio"
-                err = os.MkdirAll(audioDir, os.ModePerm)
-                if err != nil {
-                    log.Fatalf("Failed to create audio directory: %v", err)
-                }
+				rand.Seed(time.Now().UnixNano())
+				randomNumber := rand.Intn(1000000)                    // Random number up to 6 digits
+				fileName := fmt.Sprintf("audio_%d.wav", randomNumber) // Assuming the output format is .wav
+				filePath := filepath.Join(audioDir, fileName)
 
-                rand.Seed(time.Now().UnixNano())
-                randomNumber := rand.Intn(1000000) // Random number up to 6 digits
-                fileName := fmt.Sprintf("audio_%d.wav", randomNumber) // Assuming the output format is .wav
-                filePath := filepath.Join(audioDir, fileName)
+				err = pcm.TTStoWav(tts, filePath)
+				if err != nil {
+					log.Printf("Failed to convert TTS to WAV: %v", err)
+					break
+				}
 
+				fmt.Printf("Audio file saved successfully at %s\n", filePath)
 
-                err = pcm.TTStoWav(tts, filePath)
-                if err != nil {
-                    log.Printf("Failed to convert TTS to WAV: %v", err)
-                    break
-                }
-
-                fmt.Printf("Audio file saved successfully at %s\n", filePath)
-
-                err = playAudio(filePath)
-                if err != nil {
-                    log.Fatalf("Failed to play audio: %v", err)
-                }
+				err = playAudio(filePath)
+				if err != nil {
+					log.Fatalf("Failed to play audio: %v", err)
+				}
 
 				emotionChanged = false
 
