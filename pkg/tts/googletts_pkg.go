@@ -10,7 +10,6 @@ import (
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
 )
 
-// GoogleTextToSpeech converts the given text to speech, saves to the specified filePath
 func GoogleTextToSpeechFile(text, filePath string, language string) error {
 
 	ctx := context.Background()
@@ -32,7 +31,7 @@ func GoogleTextToSpeechFile(text, filePath string, language string) error {
 		TTSName = "en-US-Journey-F"
 
 	}
-	// Build the request without effects profile
+
 	req := &texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
 			InputSource: &texttospeechpb.SynthesisInput_Text{Text: text},
@@ -46,13 +45,10 @@ func GoogleTextToSpeechFile(text, filePath string, language string) error {
 		},
 	}
 
-	// log.Printf("SynthesizeSpeechRequest: %+v\n", req)
 	response, err := client.SynthesizeSpeech(ctx, req)
 	if err != nil {
 		return fmt.Errorf("failed to synthesize speech: %w", err)
 	}
-
-	// log.Printf("SynthesizeSpeechResponse: %+v\n", response)
 
 	outFile, err := os.Create(filePath)
 	if err != nil {
@@ -67,7 +63,6 @@ func GoogleTextToSpeechFile(text, filePath string, language string) error {
 	return nil
 }
 
-// GoogleTextToSpeech converts the given text to speech, saves to the specified filePath
 func GoogleTextToSpeech(text, language string) ([]byte, error) {
 
 	ctx := context.Background()
@@ -92,7 +87,7 @@ func GoogleTextToSpeech(text, language string) ([]byte, error) {
 		TTSCode = "en-US"
 		TTSName = "en-US-Journey-F"
 	}
-	// Build the request without effects profile
+
 	req := &texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
 			InputSource: &texttospeechpb.SynthesisInput_Text{Text: text},
@@ -106,8 +101,6 @@ func GoogleTextToSpeech(text, language string) ([]byte, error) {
 		},
 	}
 
-	// log.Printf("SynthesizeSpeechRequest: %+v\n", req)
-
 	response, err := client.SynthesizeSpeech(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to synthesize speech: %w", err)
@@ -116,7 +109,6 @@ func GoogleTextToSpeech(text, language string) ([]byte, error) {
 	return response.AudioContent, nil
 }
 
-// ListVoices lists available voices for a given language code
 func ListVoices(languageCode string) ([]*texttospeechpb.Voice, error) {
 	ctx := context.Background()
 

@@ -10,7 +10,6 @@ import (
 	"os"
 )
 
-// GenerateGroqLLMResponse generates a response from the Groq LLM API
 func GenerateLLMResponse(userPrompt string, systemPrompt string, language string) (models.GroqLLMResponse, error) {
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
@@ -71,7 +70,6 @@ func GenerateLLMResponse(userPrompt string, systemPrompt string, language string
 
 	return apiResp, nil
 }
-
 
 // GenerateGroqLLMResponse generates a response from the Groq LLM API using structured conversation data
 

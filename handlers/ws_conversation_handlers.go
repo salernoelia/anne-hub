@@ -155,9 +155,6 @@ func WebSocketConversationHandler(c echo.Context) error {
 					break
 				}
 
-				// log.Printf("Last conversation: %v\n", lastConversation)
-				// log.Printf("Conversation history: %v\n", conversationHistory)
-
 				systemPrompt := systemprompt.DynamicGeneration(currentConversation.UserID)
 				services.AppendMessageToConversationHistory(&conversationHistory, "user", transcription)
 
